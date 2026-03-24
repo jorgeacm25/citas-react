@@ -1,14 +1,21 @@
 import { useState } from 'react';
 
-const InterfazSalida = ({ productos, combos, onRegistrarSalida, onCancelar }) => {
+const InterfazSalida = ({ productos, combos, clientesFrecuentes = [], onRegistrarSalida, onCancelar }) => {
   const [tipoSalida, setTipoSalida] = useState('producto'); // 'producto' o 'combo'
   const [itemsSalida, setItemsSalida] = useState([]);
   const [comboSeleccionado, setComboSeleccionado] = useState(null);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
   const [cantidad, setCantidad] = useState(1);
   const [motivo, setMotivo] = useState('');
+  const [motivoOtro, setMotivoOtro] = useState('');
+  const [clienteVenta, setClienteVenta] = useState('');
+  const [clienteVentaNuevo, setClienteVentaNuevo] = useState('');
   const [terminoBusqueda, setTerminoBusqueda] = useState('');
   const [error, setError] = useState('');
+
+  const clienteVentaFinal = clienteVenta === '__nuevo__'
+    ? clienteVentaNuevo.trim()
+    : clienteVenta.trim();
 
   const productosFiltrados = productos.filter(p => 
     p.nombre.toLowerCase().includes(terminoBusqueda.toLowerCase()) &&
@@ -96,18 +103,34 @@ const InterfazSalida = ({ productos, combos, onRegistrarSalida, onCancelar }) =>
       return;
     }
 
+    if (motivo === 'venta' && !clienteVentaFinal) {
+      setError('Debe indicar el nombre del cliente para registrar la venta');
+      return;
+    }
+
+    const motivoFinal = motivo === 'otro' ? motivoOtro.trim() : motivo;
+    if (motivo === 'otro' && !motivoFinal) {
+      setError('Debe describir el motivo de la salida');
+      return;
+    }
+
+    const datosSalida = {
+      motivo: motivoFinal,
+      cliente: motivo === 'venta' ? clienteVentaFinal : '',
+    };
+
     if (tipoSalida === 'producto') {
-      onRegistrarSalida(itemsSalida, 'producto');
+      onRegistrarSalida(itemsSalida, 'producto', null, datosSalida);
     } else {
-      onRegistrarSalida([], 'combo', comboSeleccionado);
+      onRegistrarSalida([], 'combo', comboSeleccionado, datosSalida);
     }
   };
 
   const totalProductos = itemsSalida.reduce((acc, item) => acc + item.cantidad, 0);
 
   return (
-    <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-6 w-full max-w-6xl mx-auto">
-      <h2 className="text-3xl font-bold text-center text-red-600 mb-6">Registrar Salida de Inventario</h2>
+    <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-4 sm:p-6 w-full max-w-6xl mx-auto">
+      <h2 className="text-2xl sm:text-3xl font-bold text-center text-red-600 mb-6">Registrar Salida de Inventario</h2>
       
       {error && (
         <div className="bg-red-600 text-white text-center p-3 text-sm rounded-lg mb-4 whitespace-pre-line">
@@ -116,7 +139,7 @@ const InterfazSalida = ({ productos, combos, onRegistrarSalida, onCancelar }) =>
       )}
 
       {/* Selector de tipo de salida */}
-      <div className="flex gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
         <button
           onClick={() => {
             setTipoSalida('producto');
@@ -155,7 +178,7 @@ const InterfazSalida = ({ productos, combos, onRegistrarSalida, onCancelar }) =>
             <label className="block text-gray-700 font-bold text-sm mb-2">
               Buscar Producto para Agregar
             </label>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
                 <input
                   type="text"
@@ -180,7 +203,7 @@ const InterfazSalida = ({ productos, combos, onRegistrarSalida, onCancelar }) =>
               </div>
               <button
                 onClick={agregarItem}
-                className="px-6 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-all duration-300"
+                className="w-full sm:w-auto px-6 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-all duration-300"
               >
                 Agregar
               </button>
@@ -208,7 +231,7 @@ const InterfazSalida = ({ productos, combos, onRegistrarSalida, onCancelar }) =>
             )}
 
             {productoSeleccionado && (
-              <div className="mt-4 flex items-center gap-4">
+              <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                 <div className="flex-1 bg-green-50 p-3 rounded-lg">
                   <span className="font-bold text-green-700">Seleccionado: </span>
                   <span>{productoSeleccionado.nombre}</span>
@@ -216,14 +239,16 @@ const InterfazSalida = ({ productos, combos, onRegistrarSalida, onCancelar }) =>
                     (Stock: {productoSeleccionado.cantidad} {productoSeleccionado.unidad})
                   </span>
                 </div>
-                <div className="w-32">
+                <div className="w-full sm:w-32">
                   <input
                     type="number"
                     value={cantidad}
                     onChange={(e) => setCantidad(parseInt(e.target.value) || 0)}
+                    onFocus={(e) => e.target.select()}
                     className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400"
-                    min="1"
-                    max={productoSeleccionado.cantidad}
+                    placeholder="0"
+                    min="0"
+                    max={productoSeleccionado?.cantidad || 0}
                   />
                 </div>
               </div>
@@ -259,7 +284,9 @@ const InterfazSalida = ({ productos, combos, onRegistrarSalida, onCancelar }) =>
                               type="number"
                               value={item.cantidad}
                               onChange={(e) => actualizarCantidad(index, parseInt(e.target.value) || 0)}
+                              onFocus={(e) => e.target.select()}
                               className="w-20 p-1 border border-red-300 rounded text-xs"
+                              placeholder="0"
                               min="0"
                               max={item.producto.cantidad}
                             />
@@ -356,7 +383,16 @@ const InterfazSalida = ({ productos, combos, onRegistrarSalida, onCancelar }) =>
         </label>
         <select
           value={motivo}
-          onChange={(e) => setMotivo(e.target.value)}
+          onChange={(e) => {
+            setMotivo(e.target.value);
+            if (e.target.value !== 'venta') {
+              setClienteVenta('');
+              setClienteVentaNuevo('');
+            }
+            if (e.target.value !== 'otro') {
+              setMotivoOtro('');
+            }
+          }}
           className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400"
         >
           <option value="">Seleccione un motivo</option>
@@ -368,12 +404,46 @@ const InterfazSalida = ({ productos, combos, onRegistrarSalida, onCancelar }) =>
         </select>
       </div>
 
+      {motivo === 'venta' && (
+        <div className="mb-6">
+          <label className="block text-gray-700 font-bold text-sm mb-2">
+            Cliente de la Venta <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={clienteVenta}
+            onChange={(e) => {
+              setClienteVenta(e.target.value);
+              if (e.target.value !== '__nuevo__') {
+                setClienteVentaNuevo('');
+              }
+            }}
+            className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400"
+          >
+            <option value="">Seleccione un cliente</option>
+            {clientesFrecuentes.map((cliente) => (
+              <option key={cliente} value={cliente}>{cliente}</option>
+            ))}
+            <option value="__nuevo__">Cliente nuevo...</option>
+          </select>
+
+          {clienteVenta === '__nuevo__' && (
+            <input
+              type="text"
+              value={clienteVentaNuevo}
+              onChange={(e) => setClienteVentaNuevo(e.target.value)}
+              className="w-full mt-3 p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400"
+              placeholder="Nombre del cliente"
+            />
+          )}
+        </div>
+      )}
+
       {motivo === 'otro' && (
         <div className="mb-6">
           <input
             type="text"
-            value={motivo}
-            onChange={(e) => setMotivo(e.target.value)}
+            value={motivoOtro}
+            onChange={(e) => setMotivoOtro(e.target.value)}
             className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400"
             placeholder="Describa el motivo..."
           />
@@ -381,19 +451,21 @@ const InterfazSalida = ({ productos, combos, onRegistrarSalida, onCancelar }) =>
       )}
 
       {/* Botones de acción */}
-      <div className="flex justify-end gap-4">
+      <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
         <button
           onClick={onCancelar}
-          className="px-6 py-3 border-2 border-gray-500 bg-gray-50 text-gray-700 font-bold rounded-lg hover:bg-gray-100 transition-all duration-300"
+          className="w-full sm:w-auto px-6 py-3 border-2 border-gray-500 bg-gray-50 text-gray-700 font-bold rounded-lg hover:bg-gray-100 transition-all duration-300"
         >
           Cancelar
         </button>
         <button
           onClick={handleRegistrarSalida}
-          className="px-6 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full sm:w-auto px-6 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={(tipoSalida === 'producto' && itemsSalida.length === 0) || 
                    (tipoSalida === 'combo' && !comboSeleccionado) || 
-                   !motivo}
+                   !motivo ||
+                   (motivo === 'venta' && !clienteVentaFinal) ||
+                   (motivo === 'otro' && !motivoOtro.trim())}
         >
           Registrar Salida
         </button>

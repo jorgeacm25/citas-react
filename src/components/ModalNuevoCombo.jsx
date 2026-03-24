@@ -55,8 +55,8 @@ const ModalNuevoCombo = ({ productos, onCrearCombo, onCerrar }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
       <div className="absolute inset-0 bg-black bg-opacity-50" onClick={onCerrar}></div>
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 p-6 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-2xl font-bold text-green-600 mb-4">Crear Nuevo Combo</h2>
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+        <h2 className="text-xl sm:text-2xl font-bold text-green-600 mb-4">Crear Nuevo Combo</h2>
         
         {error && (
           <div className="bg-red-600 text-white text-center p-3 text-sm rounded-lg mb-4">
@@ -145,15 +145,17 @@ const ModalNuevoCombo = ({ productos, onCrearCombo, onCerrar }) => {
                             type="number"
                             value={producto.cantidad}
                             onChange={(e) => actualizarCantidad(index, parseInt(e.target.value) || 0)}
-                            className="w-16 p-1 border border-green-300 rounded text-xs"
-                            min="1"
+                              onFocus={(e) => e.target.select()}
+                              className="w-full sm:w-16 p-1 border border-green-300 rounded text-xs"
+                              placeholder="0"
+                              min="0"
                           />
                         </td>
                         <td className="border-2 border-green-200 p-2 text-xs">
                           <select
                             value={producto.unidad}
                             onChange={(e) => actualizarUnidad(index, e.target.value)}
-                            className="w-16 p-1 border border-green-300 rounded text-xs"
+                            className="w-full sm:w-16 p-1 border border-green-300 rounded text-xs"
                           >
                             <option value="lb">lb</option>
                             <option value="kg">kg</option>
@@ -179,7 +181,7 @@ const ModalNuevoCombo = ({ productos, onCrearCombo, onCerrar }) => {
           </div>
         )}
 
-        <div className="flex justify-end gap-3">
+        <div className="flex flex-col sm:flex-row justify-end gap-3">
           <button
             onClick={onCerrar}
             className="px-6 py-3 border-2 border-gray-500 bg-gray-50 text-gray-700 font-bold rounded-lg hover:bg-gray-100 transition-all duration-300"

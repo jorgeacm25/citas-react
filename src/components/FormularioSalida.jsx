@@ -171,9 +171,11 @@ const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar }) =>
                   type="number"
                   value={cantidad}
                   onChange={(e) => setCantidad(parseInt(e.target.value) || 0)}
+                  onFocus={(e) => e.target.select()}
                   className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-400"
-                  min="1"
-                  max={productoSeleccionado.cantidad}
+                  placeholder="0"
+                  min="0"
+                  max={productoSeleccionado?.cantidad || 0}
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Máximo disponible: {productoSeleccionado.cantidad} {productoSeleccionado.unidad}
@@ -285,7 +287,7 @@ const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar }) =>
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3 mt-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
           <button
             onClick={onCerrar}
             className="px-4 py-3 border-2 border-gray-500 bg-gray-50 text-gray-700 font-bold rounded-lg hover:bg-gray-100 transition-all duration-300"

@@ -68,7 +68,7 @@ const LoginTrabajadorForm = ({ onLogin, onCancelar }) => {
           />
         </div>
         
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button 
             type="button"
             className="w-full px-4 py-3 border-2 border-red-500 bg-red-50 text-red-700 font-bold rounded-lg hover:bg-red-100 transition-all duration-300 text-sm cursor-pointer"

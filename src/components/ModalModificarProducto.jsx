@@ -72,8 +72,8 @@ const ModalModificarProducto = ({ producto, onModificar, onCerrar }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
       <div className="absolute inset-0 bg-black bg-opacity-50" onClick={onCerrar}></div>
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto border-2 border-blue-400">
-        <h3 className="text-3xl font-extrabold text-blue-700 mb-4">Modificar Producto</h3>
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-4 sm:p-6 max-h-[90vh] overflow-y-auto border-2 border-blue-400">
+        <h3 className="text-2xl sm:text-3xl font-extrabold text-blue-700 mb-4">Modificar Producto</h3>
         
         {error && (
           <div className="bg-red-700 text-white text-center p-3 text-base rounded-lg mb-4">
@@ -135,8 +135,9 @@ const ModalModificarProducto = ({ producto, onModificar, onCerrar }) => {
                 type="number"
                 value={peso}
                 onChange={(e) => setPeso(e.target.value)}
+                onFocus={(e) => e.target.select()}
                 className="w-24 p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-                placeholder="Peso"
+                placeholder="0"
                 step="0.01"
                 min="0"
               />
@@ -152,7 +153,7 @@ const ModalModificarProducto = ({ producto, onModificar, onCerrar }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-gray-700 font-bold text-sm mb-2">
                 Fecha Entrada <span className="text-red-500">*</span>
@@ -190,7 +191,7 @@ const ModalModificarProducto = ({ producto, onModificar, onCerrar }) => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <button
               type="button"
               onClick={onCerrar}
@@ -208,14 +209,14 @@ const ModalModificarProducto = ({ producto, onModificar, onCerrar }) => {
         </form>
         ) : (
           <div>
-            <p className="text-xl font-bold text-gray-800 mb-3">¿Confirmar esta accion importante?</p>
+            <p className="text-lg sm:text-xl font-bold text-gray-800 mb-3">¿Confirmar esta accion importante?</p>
             <div className="p-4 border-2 border-blue-300 rounded-lg bg-blue-50 mb-4">
-              <p className="text-lg"><span className="font-extrabold">Accion:</span> modificar producto</p>
-              <p className="text-lg"><span className="font-extrabold">Producto:</span> {producto.nombre}</p>
-              <p className="text-lg"><span className="font-extrabold">Nuevo nombre:</span> {nombre}</p>
-              <p className="text-lg"><span className="font-extrabold">Nueva cantidad:</span> {cantidad}</p>
+              <p className="text-base sm:text-lg"><span className="font-extrabold">Accion:</span> modificar producto</p>
+              <p className="text-base sm:text-lg"><span className="font-extrabold">Producto:</span> {producto.nombre}</p>
+              <p className="text-base sm:text-lg"><span className="font-extrabold">Nuevo nombre:</span> {nombre}</p>
+              <p className="text-base sm:text-lg"><span className="font-extrabold">Nueva cantidad:</span> {cantidad}</p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <button type="button" onClick={() => setConfirmando(false)} className="px-6 py-3 border-2 border-gray-700 bg-white text-gray-800 font-extrabold rounded-lg">
                 NO, VOLVER
               </button>

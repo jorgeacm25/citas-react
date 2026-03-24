@@ -109,14 +109,14 @@ const DashboardPrincipal = ({ productos, historial, combos, alertas }) => {
   return (
     <div className="mt-8 px-4 sm:px-6 md:px-8 pb-8">
       <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-6 w-full max-w-6xl mx-auto border-2 border-orange-100 transition-colors duration-300">
-        <h2 className="text-3xl font-bold text-orange-600 mb-2">Dashboard Principal</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold text-orange-600 mb-2">Dashboard Principal</h2>
         <p className="text-sm text-gray-600 mb-6">Resumen rapido del estado del almacen</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <Tooltip texto="Cantidad diferente de artículos en almacén" posicion="abajo">
             <div className="rounded-xl border-2 border-blue-200 bg-blue-50 p-4 transition-all duration-300 hover:shadow-lg animate-slide-in">
               <p className="text-xs text-blue-700 font-bold uppercase">Total de productos</p>
-              <p className="text-3xl font-extrabold text-blue-900 mt-2">{totalTiposProducto}</p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-blue-900 mt-2">{totalTiposProducto}</p>
               <p className="text-xs text-blue-700 mt-1">{totalUnidades} unidades en stock</p>
             </div>
           </Tooltip>
@@ -125,7 +125,7 @@ const DashboardPrincipal = ({ productos, historial, combos, alertas }) => {
             <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50 p-4 transition-all duration-300 hover:shadow-lg animate-slide-in"
               style={{ animationDelay: '0.1s' }}>
               <p className="text-xs text-emerald-700 font-bold uppercase">Valor inventario</p>
-              <p className="text-2xl font-extrabold text-emerald-900 mt-2">{formatearMoneda(valorInventario)}</p>
+              <p className="text-xl sm:text-2xl font-extrabold text-emerald-900 mt-2 break-words">{formatearMoneda(valorInventario)}</p>
               <p className="text-xs text-emerald-700 mt-1">Estimado por precios/codigos</p>
             </div>
           </Tooltip>
@@ -134,7 +134,7 @@ const DashboardPrincipal = ({ productos, historial, combos, alertas }) => {
             <div className="rounded-xl border-2 border-amber-200 bg-amber-50 p-4 transition-all duration-300 hover:shadow-lg animate-slide-in"
               style={{ animationDelay: '0.2s' }}>
               <p className="text-xs text-amber-700 font-bold uppercase">Stock bajo</p>
-              <p className="text-3xl font-extrabold text-amber-900 mt-2">{alertas.stockBajo.length}</p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-amber-900 mt-2">{alertas.stockBajo.length}</p>
               <p className="text-xs text-amber-700 mt-1">Umbral actual: 50</p>
             </div>
           </Tooltip>
@@ -143,7 +143,7 @@ const DashboardPrincipal = ({ productos, historial, combos, alertas }) => {
             <div className="rounded-xl border-2 border-purple-200 bg-purple-50 p-4 transition-all duration-300 hover:shadow-lg animate-slide-in"
               style={{ animationDelay: '0.3s' }}>
               <p className="text-xs text-purple-700 font-bold uppercase">Movimientos del dia</p>
-              <p className="text-3xl font-extrabold text-purple-900 mt-2">{movimientosHoy.length}</p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-purple-900 mt-2">{movimientosHoy.length}</p>
               <p className="text-xs text-purple-700 mt-1">Entradas: {entradasHoy} | Salidas: {salidasHoy}</p>
             </div>
           </Tooltip>

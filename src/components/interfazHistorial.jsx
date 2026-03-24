@@ -3,6 +3,7 @@ import { useState } from 'react';
 const InterfazHistorial = ({ historial }) => {
   const [filtro, setFiltro] = useState('todos');
   const [busqueda, setBusqueda] = useState('');
+  const [detalleSeleccionado, setDetalleSeleccionado] = useState(null);
 
   const getColorPorTipo = (tipo) => {
     switch(tipo) {
@@ -109,7 +110,11 @@ const InterfazHistorial = ({ historial }) => {
           {historialFiltrado.length > 0 ? (
             <div className="divide-y divide-purple-100">
               {historialFiltrado.map((entry) => (
-                <div key={entry.id} className="p-4 hover:bg-purple-50/50 transition-colors">
+                <div 
+                  key={entry.id} 
+                  onClick={() => setDetalleSeleccionado(entry)}
+                  className="p-4 hover:bg-purple-50/50 transition-colors cursor-pointer border-l-4 border-l-transparent hover:border-l-purple-500"
+                >
                   <div className="flex items-start gap-4">
                     {/* Icono */}
                     <div className={`p-2 rounded-lg ${getColorPorTipo(entry.tipo)}`}>
@@ -128,6 +133,7 @@ const InterfazHistorial = ({ historial }) => {
                           {entry.tipo}
                         </span>
                         <span className="text-xs text-gray-500">por: {entry.usuario}</span>
+                        <span className="text-xs text-purple-600 font-semibold">Ver detalles →</span>
                       </div>
                     </div>
                   </div>
@@ -146,6 +152,93 @@ const InterfazHistorial = ({ historial }) => {
       <div className="mt-4 text-sm text-gray-500 text-right">
         Total de registros: {historialFiltrado.length}
       </div>
+
+      {/* Modal de detalles */}
+      {detalleSeleccionado && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            {/* Encabezado */}
+            <div className="flex justify-between items-start gap-4 mb-6">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`p-2 rounded-lg ${getColorPorTipo(detalleSeleccionado.tipo)}`}>
+                    {getIconoPorTipo(detalleSeleccionado.tipo)}
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-800">{detalleSeleccionado.accion}</h3>
+                </div>
+                <p className={`text-xs px-2 py-1 rounded-full inline-block ${getColorPorTipo(detalleSeleccionado.tipo)}`}>
+                  {detalleSeleccionado.tipo}
+                </p>
+              </div>
+              <button
+                onClick={() => setDetalleSeleccionado(null)}
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Contenido */}
+            <div className="space-y-4">
+              {/* Información general */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm font-bold text-gray-600 mb-1">Fecha y Hora</p>
+                  <p className="text-lg font-semibold text-gray-800">{detalleSeleccionado.fecha}</p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <p className="text-sm font-bold text-gray-600 mb-1">Realizado por</p>
+                  <p className="text-lg font-semibold text-gray-800">{detalleSeleccionado.usuario}</p>
+                </div>
+              </div>
+
+              {/* Detalle principal */}
+              <div className="bg-blue-50 border-2 border-blue-200 p-4 rounded-lg">
+                <p className="text-sm font-bold text-blue-700 mb-2">Descripción del Movimiento</p>
+                <p className="text-base text-gray-800 whitespace-pre-wrap break-words">{detalleSeleccionado.detalle}</p>
+              </div>
+
+              {/* Datos adicionales si existen */}
+              {detalleSeleccionado.datos && Object.keys(detalleSeleccionado.datos).length > 0 && (
+                <div className="bg-purple-50 border-2 border-purple-200 p-4 rounded-lg">
+                  <p className="text-sm font-bold text-purple-700 mb-3">Información Adicional</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {Object.entries(detalleSeleccionado.datos).map(([clave, valor]) => {
+                      // Si es un array o objeto, mostrarlo de forma legible
+                      if (typeof valor === 'object') {
+                        return (
+                          <div key={clave} className="col-span-1 sm:col-span-2">
+                            <p className="text-xs font-semibold text-purple-700 uppercase mb-1">{clave}</p>
+                            <pre className="text-xs bg-white p-2 rounded border border-purple-300 overflow-x-auto">
+                              {JSON.stringify(valor, null, 2)}
+                            </pre>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div key={clave}>
+                          <p className="text-xs font-semibold text-purple-700 uppercase mb-1">{clave}</p>
+                          <p className="text-sm font-medium text-gray-800">{String(valor)}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Botón cerrar */}
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setDetalleSeleccionado(null)}
+                className="px-6 py-2 border-2 border-gray-500 bg-gray-50 text-gray-700 font-bold rounded-lg hover:bg-gray-100 transition-all duration-300"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

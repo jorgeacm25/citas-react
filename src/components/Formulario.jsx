@@ -164,10 +164,12 @@ const Formulario = ({ onAgregarProducto, onCerrar }) => {
               <input 
                 type="number" 
                 id="cantidad"
-                placeholder="Cantidad"
+                placeholder="0"
                 className="border-2 border-orange-500 w-full p-3 text-base placeholder-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-600 transition-all"
                 value={cantidad}
                 onChange={(e) => setCantidad(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                min="0"
               />
             </div>
 
@@ -179,10 +181,11 @@ const Formulario = ({ onAgregarProducto, onCerrar }) => {
                 <input 
                   type="number" 
                   id="Peso"
-                  placeholder="Peso"
+                  placeholder="0"
                   className="w-36 border-2 border-orange-500 p-3 text-base placeholder-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-600 transition-all"
                   value={peso}
                   onChange={(e) => setPeso(e.target.value)}
+                  onFocus={(e) => e.target.select()}
                   step="0.01"
                   min="0"
                 />

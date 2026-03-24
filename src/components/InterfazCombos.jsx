@@ -130,7 +130,7 @@ const InterfazCombos = ({ combos, setCombos, productos, onModificarCombo, onAgre
   };
 
   return (
-    <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-6 w-full max-w-7xl mx-auto">
+    <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-4 sm:p-6 w-full max-w-7xl mx-auto">
       <h2 className="text-3xl font-bold text-center text-green-600 mb-6">
         Gestión de Combos
       </h2>
@@ -175,7 +175,7 @@ const InterfazCombos = ({ combos, setCombos, productos, onModificarCombo, onAgre
       </div>
 
       {/* Grid de combos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
         {combosFiltrados.map((combo) => (
           <div
             key={combo.id}
@@ -192,7 +192,7 @@ const InterfazCombos = ({ combos, setCombos, productos, onModificarCombo, onAgre
             <p className="text-sm text-gray-600 mb-2">
               {combo.productos.length} productos • Total: {totalProductos(combo)} unidades
             </p>
-            <div className="flex gap-2 mt-3">
+            <div className="flex flex-col sm:flex-row gap-2 mt-3">
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
@@ -219,13 +219,13 @@ const InterfazCombos = ({ combos, setCombos, productos, onModificarCombo, onAgre
       {/* Detalle del combo seleccionado */}
       {comboSeleccionado && !modoEdicion && (
         <div className="mt-8 border-t-2 border-green-200 pt-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-2xl font-bold text-green-700">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
+            <h3 className="text-xl sm:text-2xl font-bold text-green-700">
               Detalle: {comboSeleccionado.nombre}
             </h3>
             <button
               onClick={() => modificarComposicion(comboSeleccionado)}
-              className="px-4 py-2 border-2 border-yellow-500 bg-yellow-50 text-yellow-700 font-bold rounded-lg hover:bg-yellow-100 transition-all duration-300 text-sm"
+              className="w-full sm:w-auto px-4 py-2 border-2 border-yellow-500 bg-yellow-50 text-yellow-700 font-bold rounded-lg hover:bg-yellow-100 transition-all duration-300 text-sm"
             >
               Modificar Composición
             </button>
@@ -284,20 +284,20 @@ const InterfazCombos = ({ combos, setCombos, productos, onModificarCombo, onAgre
       {/* Modo edición de composición */}
       {modoEdicion && comboEditando && (
         <div className="mt-8 border-t-2 border-yellow-200 pt-6">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-2xl font-bold text-yellow-700">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4">
+            <h3 className="text-xl sm:text-2xl font-bold text-yellow-700">
               Editando: {comboEditando.nombre}
             </h3>
-            <div className="flex gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full sm:w-auto">
               <button
                 onClick={cancelarEdicion}
-                className="px-4 py-2 border-2 border-gray-500 bg-gray-50 text-gray-700 font-bold rounded-lg hover:bg-gray-100 transition-all duration-300 text-sm"
+                className="w-full px-4 py-2 border-2 border-gray-500 bg-gray-50 text-gray-700 font-bold rounded-lg hover:bg-gray-100 transition-all duration-300 text-sm"
               >
                 Cancelar
               </button>
               <button
                 onClick={guardarCambiosCombo}
-                className="px-4 py-2 border-2 border-green-500 bg-green-50 text-green-700 font-bold rounded-lg hover:bg-green-100 transition-all duration-300 text-sm"
+                className="w-full px-4 py-2 border-2 border-green-500 bg-green-50 text-green-700 font-bold rounded-lg hover:bg-green-100 transition-all duration-300 text-sm"
               >
                 Guardar Cambios
               </button>
@@ -374,7 +374,9 @@ const InterfazCombos = ({ combos, setCombos, productos, onModificarCombo, onAgre
                           type="number"
                           value={producto.cantidad}
                           onChange={(e) => actualizarProductoEditando(index, 'cantidad', parseInt(e.target.value) || 0)}
-                          className="w-16 p-1 border border-yellow-300 rounded text-xs"
+                            onFocus={(e) => e.target.select()}
+                            className="w-full sm:w-16 p-1 border border-yellow-300 rounded text-xs"
+                            placeholder="0"
                           min="0"
                           step="1"
                         />
@@ -383,7 +385,7 @@ const InterfazCombos = ({ combos, setCombos, productos, onModificarCombo, onAgre
                         <select
                           value={producto.unidad}
                           onChange={(e) => actualizarProductoEditando(index, 'unidad', e.target.value)}
-                          className="w-16 p-1 border border-yellow-300 rounded text-xs"
+                          className="w-full sm:w-16 p-1 border border-yellow-300 rounded text-xs"
                         >
                           <option value="lb">lb</option>
                           <option value="kg">kg</option>
@@ -413,7 +415,7 @@ const InterfazCombos = ({ combos, setCombos, productos, onModificarCombo, onAgre
       <div className="flex justify-end mt-6">
         <button
           onClick={onAbrirNuevoCombo}
-          className="px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-all duration-300 text-sm shadow-lg hover:shadow-xl"
+          className="w-full sm:w-auto px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-all duration-300 text-sm shadow-lg hover:shadow-xl"
         >
           + Nuevo Combo
         </button>

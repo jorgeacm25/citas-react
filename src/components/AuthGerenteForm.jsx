@@ -87,7 +87,7 @@ const AuthGerenteForm = ({ onAuthExitoso, onCancelar }) => {
           required
         />
         
-        <div className="grid grid-cols-2 gap-3 mt-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
           <Button 
             variant="danger"
             size="full"
@@ -108,7 +108,7 @@ const AuthGerenteForm = ({ onAuthExitoso, onCancelar }) => {
         </div>
       </form>
       
-      <div className="mt-4 p-3 bg-gray-100 rounded-lg text-xs text-gray-600">
+      <div className="mt-4 p-3 bg-gray-100 rounded-lg text-xs sm:text-sm text-gray-600">
         <p className="font-bold">Demo Gerente:</p>
         <p>Usuario: gerente</p>
         <p>Contraseña: admin123</p>

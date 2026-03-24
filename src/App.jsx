@@ -115,7 +115,7 @@ function App() {
   const alertas = useStockAlerts(productos, 50, 7);
 
   // Función para agregar al historial
-  const agregarAlHistorial = (tipo, accion, detalle) => {
+  const agregarAlHistorial = (tipo, accion, detalle, datos = {}) => {
     const nuevaEntrada = {
       id: historial.length + 1,
       fecha: new Date().toLocaleString('es-CU', { 
@@ -128,7 +128,8 @@ function App() {
       tipo,
       accion,
       detalle,
-      usuario: usuario?.nombre || 'Sistema'
+      usuario: usuario?.nombre || 'Sistema',
+      datos
     };
     setHistorial([nuevaEntrada, ...historial]);
   };
@@ -232,7 +233,15 @@ function App() {
     };
     setProductos([...productos, productoConCategoria]);
     agregarAlHistorial('entrada', 'Nuevo Producto', 
-      `Se agregó ${nuevoProducto.nombre} (${nuevoProducto.cantidad} ${nuevoProducto.unidad})`);
+      `Se agregó ${nuevoProducto.nombre} (${nuevoProducto.cantidad} ${nuevoProducto.unidad})`,
+      {
+        producto_nombre: nuevoProducto.nombre,
+        cantidad: nuevoProducto.cantidad,
+        unidad: nuevoProducto.unidad,
+        categoria: productoConCategoria.categoria,
+        precio_unitario: nuevoProducto.precioUnitario || 0
+      }
+    );
     setMostrarFormulario(false);
   };
 
@@ -244,17 +253,42 @@ function App() {
         : producto
     ));
     agregarAlHistorial('entrada', 'Entrada de Producto', 
-      `Se agregaron ${cantidadAgregar} ${producto.unidad} a ${producto.nombre}`);
+      `Se agregaron ${cantidadAgregar} ${producto.unidad} a ${producto.nombre}`,
+      {
+        producto_id: id,
+        producto_nombre: producto.nombre,
+        cantidad_anterior: producto.cantidad,
+        cantidad_agregada: cantidadAgregar,
+        cantidad_nueva: producto.cantidad + cantidadAgregar,
+        unidad: producto.unidad
+      }
+    );
     setModalAgregar({ abierto: false, producto: null });
   };
 
   const modificarProducto = (id, productoModificado) => {
     const productoOriginal = productos.find(p => p.id === id);
+    const cambios = {};
+    Object.keys(productoModificado).forEach(key => {
+      if (productoOriginal[key] !== productoModificado[key]) {
+        cambios[key] = {
+          anterior: productoOriginal[key],
+          nuevo: productoModificado[key]
+        };
+      }
+    });
+    
     setProductos(productos.map(producto => 
       producto.id === id ? productoModificado : producto
     ));
     agregarAlHistorial('modificacion', 'Producto Modificado', 
-      `Se modificó ${productoOriginal.nombre}`);
+      `Se modificó ${productoOriginal.nombre}`,
+      {
+        producto_id: id,
+        producto_nombre: productoOriginal.nombre,
+        cambios_realizados: cambios
+      }
+    );
     setModalModificar({ abierto: false, producto: null });
   };
 
@@ -262,7 +296,15 @@ function App() {
     const producto = productos.find(p => p.id === id);
     setProductos(productos.filter(producto => producto.id !== id));
     agregarAlHistorial('eliminacion', 'Producto Eliminado', 
-      `Se eliminó ${producto.nombre}`);
+      `Se eliminó ${producto.nombre}`,
+      {
+        producto_id: id,
+        producto_nombre: producto.nombre,
+        cantidad: producto.cantidad,
+        unidad: producto.unidad,
+        categoria: producto.categoria
+      }
+    );
     setModalEliminar({ abierto: false, producto: null });
   };
 
@@ -276,7 +318,14 @@ function App() {
     };
     setCombos([...combos, nuevoCombo]);
     agregarAlHistorial('creacion', 'Nuevo Combo', 
-      `Se creó ${nombreCombo} con ${productosSeleccionados.length} productos`);
+      `Se creó ${nombreCombo} con ${productosSeleccionados.length} productos`,
+      {
+        combo_id: nuevoId,
+        combo_nombre: nombreCombo,
+        cantidad_productos: productosSeleccionados.length,
+        productos_detalle: productosSeleccionados
+      }
+    );
     setMostrarModalNuevoCombo(false);
   };
 
@@ -290,10 +339,18 @@ function App() {
   };
 
   // Función para registrar salida múltiple
-  const registrarSalidaMultiple = (items, tipoSalida = 'producto', comboInfo = null) => {
+  const registrarSalidaMultiple = (items, tipoSalida = 'producto', comboInfo = null, datosSalida = {}) => {
     let productosActualizados = [...productos];
     let detalle = '';
+    const motivoTexto = datosSalida?.motivo ? ` | Motivo: ${datosSalida.motivo}` : '';
+    const clienteTexto = datosSalida?.cliente ? ` | Cliente: ${datosSalida.cliente}` : '';
     
+    let datosHistorial = {
+      tipo_salida: tipoSalida,
+      motivo: datosSalida?.motivo || 'No especificado',
+      cliente: datosSalida?.cliente || 'No especificado'
+    };
+
     if (tipoSalida === 'producto') {
       items.forEach(item => {
         productosActualizados = productosActualizados.map(producto => {
@@ -306,7 +363,14 @@ function App() {
           return producto;
         });
       });
-      detalle = `Salida de ${items.length} productos (${items.map(i => `${i.cantidad} ${i.producto.nombre}`).join(', ')})`;
+      detalle = `Salida de ${items.length} productos (${items.map(i => `${i.cantidad} ${i.producto.nombre}`).join(', ')})${motivoTexto}${clienteTexto}`;
+      datosHistorial.productos = items.map(item => ({
+        nombre: item.producto.nombre,
+        cantidad: item.cantidad,
+        unidad: item.producto.unidad,
+        id: item.producto.id
+      }));
+      datosHistorial.cantidad_total_items = items.length;
     } else {
       // Salida de combo
       comboInfo.productos.forEach(item => {
@@ -320,11 +384,14 @@ function App() {
           return producto;
         });
       });
-      detalle = `Salida de combo ${comboInfo.nombre} (${comboInfo.productos.length} productos)`;
+      detalle = `Salida de combo ${comboInfo.nombre} (${comboInfo.productos.length} productos)${motivoTexto}${clienteTexto}`;
+      datosHistorial.combo_nombre = comboInfo.nombre;
+      datosHistorial.combo_productos = comboInfo.productos;
+      datosHistorial.cantidad_productos = comboInfo.productos.length;
     }
-    
+
     setProductos(productosActualizados);
-    agregarAlHistorial('salida', 'Salida de Inventario', detalle);
+    agregarAlHistorial('salida', 'Salida de Inventario', detalle, datosHistorial);
     alert(`Salida registrada exitosamente`);
     setSeccionActiva(null);
   };
@@ -343,6 +410,31 @@ function App() {
   const categoriasDisponibles = Array.from(
     new Set(productosEnriquecidos.map((p) => p.categoria).filter(Boolean))
   ).sort((a, b) => a.localeCompare(b));
+
+  const clientesFrecuentes = Object.entries(
+    historial.reduce((acc, entrada, index) => {
+      const match = (entrada.detalle || '').match(/Cliente:\s*([^|]+)/i);
+      if (!match) return acc;
+      const cliente = match[1].trim();
+      if (!cliente) return acc;
+
+      if (!acc[cliente]) {
+        acc[cliente] = { frecuencia: 0, indiceReciente: index };
+      }
+      acc[cliente].frecuencia += 1;
+      acc[cliente].indiceReciente = Math.min(acc[cliente].indiceReciente, index);
+      return acc;
+    }, {})
+  )
+    .sort((a, b) => {
+      const recienteA = a[1].indiceReciente;
+      const recienteB = b[1].indiceReciente;
+      if (recienteA !== recienteB) return recienteA - recienteB;
+      if (a[1].frecuencia !== b[1].frecuencia) return b[1].frecuencia - a[1].frecuencia;
+      return a[0].localeCompare(b[0]);
+    })
+    .map(([cliente]) => cliente)
+    .slice(0, 15);
 
   // Filtrar productos por texto, código, categoría, proveedor, vencimiento y rango de stock
   const productosFiltrados = productosEnriquecidos.filter((producto) => {
@@ -636,17 +728,19 @@ function App() {
                     <input
                       type="number"
                       min="0"
-                      placeholder="Stock min"
+                      placeholder="0"
                       value={stockMin}
                       onChange={(e) => setStockMin(e.target.value)}
+                      onFocus={(e) => e.target.select()}
                       className="w-full p-3 border-2 border-orange-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-600 text-base"
                     />
                     <input
                       type="number"
                       min="0"
-                      placeholder="Stock max"
+                      placeholder="0"
                       value={stockMax}
                       onChange={(e) => setStockMax(e.target.value)}
+                      onFocus={(e) => e.target.select()}
                       className="w-full p-3 border-2 border-orange-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-600 text-base"
                     />
                   </div>
@@ -818,6 +912,7 @@ function App() {
             <InterfazSalida
               productos={productos}
               combos={combos}
+              clientesFrecuentes={clientesFrecuentes}
               onRegistrarSalida={registrarSalidaMultiple}
               onCancelar={() => setSeccionActiva(null)}
             />

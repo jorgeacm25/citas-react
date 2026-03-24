@@ -24,9 +24,9 @@ const ModalAgregarCantidad = ({ producto, onAgregar, onCerrar }) => {
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
       <div className="absolute inset-0 bg-black bg-opacity-50" onClick={onCerrar}></div>
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-6 border-2 border-green-400">
-        <h3 className="text-3xl font-extrabold text-green-700 mb-4">Agregar Cantidad</h3>
-        <p className="text-lg text-gray-700 mb-4">Producto: <span className="font-extrabold">{producto.nombre}</span></p>
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-4 sm:p-6 border-2 border-green-400">
+        <h3 className="text-2xl sm:text-3xl font-extrabold text-green-700 mb-4">Agregar Cantidad</h3>
+        <p className="text-base sm:text-lg text-gray-700 mb-4">Producto: <span className="font-extrabold">{producto.nombre}</span></p>
         
         {error && (
           <div className="bg-red-700 text-white text-center p-3 text-base rounded-lg mb-4">
@@ -44,15 +44,16 @@ const ModalAgregarCantidad = ({ producto, onAgregar, onCerrar }) => {
               type="number"
               value={cantidad}
               onChange={(e) => setCantidad(e.target.value)}
+              onFocus={(e) => e.target.select()}
               className="w-full p-3 border-2 border-green-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-600 text-lg"
-              placeholder="Ingrese cantidad"
-              min="1"
+              placeholder="0"
+              min="0"
               step="1"
               autoFocus
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <button
               type="button"
               onClick={onCerrar}
@@ -70,13 +71,13 @@ const ModalAgregarCantidad = ({ producto, onAgregar, onCerrar }) => {
         </form>
         ) : (
           <div>
-            <p className="text-xl font-bold text-gray-800 mb-3">¿Confirmar esta accion?</p>
+            <p className="text-lg sm:text-xl font-bold text-gray-800 mb-3">¿Confirmar esta accion?</p>
             <div className="p-4 border-2 border-green-300 rounded-lg bg-green-50 mb-4">
-              <p className="text-lg"><span className="font-extrabold">Accion:</span> agregar inventario</p>
-              <p className="text-lg"><span className="font-extrabold">Producto:</span> {producto.nombre}</p>
-              <p className="text-lg"><span className="font-extrabold">Cantidad:</span> {cantidad} {producto.unidad}</p>
+              <p className="text-base sm:text-lg"><span className="font-extrabold">Accion:</span> agregar inventario</p>
+              <p className="text-base sm:text-lg"><span className="font-extrabold">Producto:</span> {producto.nombre}</p>
+              <p className="text-base sm:text-lg"><span className="font-extrabold">Cantidad:</span> {cantidad} {producto.unidad}</p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <button type="button" onClick={() => setConfirmando(false)} className="px-6 py-3 border-2 border-gray-700 bg-white text-gray-800 font-extrabold rounded-lg">
                 NO, VOLVER
               </button>

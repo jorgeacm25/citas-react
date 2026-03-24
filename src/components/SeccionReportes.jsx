@@ -33,25 +33,25 @@ export default function SeccionReportes({ historial, productos }) {
 
   return (
     <div className="mt-8 px-4 sm:px-6 md:px-8 pb-8">
-      <div className="alto-contraste-card rounded-2xl shadow-xl p-6 w-full max-w-6xl mx-auto">
-        <h2 className="text-4xl font-extrabold text-cyan-800 mb-6 text-center">Reportes</h2>
+      <div className="alto-contraste-card rounded-2xl shadow-xl p-4 sm:p-6 w-full max-w-6xl mx-auto">
+        <h2 className="text-3xl sm:text-4xl font-extrabold text-cyan-800 mb-6 text-center">Reportes</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <div className="border-2 border-cyan-500 rounded-xl p-5 bg-white">
             <p className="text-lg font-extrabold text-cyan-700">Ultima semana</p>
-            <p className="text-4xl font-extrabold text-gray-900 mt-2">{movimientosSemana.length}</p>
+            <p className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2">{movimientosSemana.length}</p>
             <p className="text-base text-gray-700 mt-1">Movimientos registrados</p>
           </div>
 
           <div className="border-2 border-cyan-500 rounded-xl p-5 bg-white">
             <p className="text-lg font-extrabold text-cyan-700">Ultimo mes</p>
-            <p className="text-4xl font-extrabold text-gray-900 mt-2">{movimientosMes.length}</p>
+            <p className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-2">{movimientosMes.length}</p>
             <p className="text-base text-gray-700 mt-1">Movimientos registrados</p>
           </div>
 
           <div className="border-2 border-cyan-500 rounded-xl p-5 bg-white">
             <p className="text-lg font-extrabold text-cyan-700">Productos con stock bajo</p>
-            <p className="text-4xl font-extrabold text-red-700 mt-2">{productosBajoStock.length}</p>
+            <p className="text-3xl sm:text-4xl font-extrabold text-red-700 mt-2">{productosBajoStock.length}</p>
             <p className="text-base text-gray-700 mt-1">Con 50 o menos unidades</p>
           </div>
         </div>
@@ -75,7 +75,7 @@ export default function SeccionReportes({ historial, productos }) {
           <button
             type="button"
             onClick={() => window.print()}
-            className="px-6 py-3 border-2 border-cyan-800 bg-white text-cyan-900 font-extrabold rounded-lg hover:bg-cyan-100"
+            className="w-full sm:w-auto px-6 py-3 border-2 border-cyan-800 bg-white text-cyan-900 font-extrabold rounded-lg hover:bg-cyan-100"
           >
             Imprimir Reporte
           </button>
