@@ -16,7 +16,6 @@ const ModalNuevoCombo = ({ productos, onCrearCombo, onCerrar }) => {
       ...productosSeleccionados,
       {
         nombre: producto.nombre,
-        codigo: producto.codigo || '',
         cantidad: 1,
         unidad: producto.unidad
       }
@@ -116,7 +115,6 @@ const ModalNuevoCombo = ({ productos, onCrearCombo, onCerrar }) => {
                     <tr>
                       <th className="border-2 border-green-200 p-2 text-left text-xs font-bold">#</th>
                       <th className="border-2 border-green-200 p-2 text-left text-xs font-bold">Producto</th>
-                      <th className="border-2 border-green-200 p-2 text-left text-xs font-bold">Código</th>
                       <th className="border-2 border-green-200 p-2 text-left text-xs font-bold">Cantidad</th>
                       <th className="border-2 border-green-200 p-2 text-left text-xs font-bold">Unidad</th>
                       <th className="border-2 border-green-200 p-2 text-left text-xs font-bold">Acciones</th>
@@ -127,19 +125,6 @@ const ModalNuevoCombo = ({ productos, onCrearCombo, onCerrar }) => {
                       <tr key={index} className="hover:bg-green-50/50">
                         <td className="border-2 border-green-200 p-2 text-xs">{index + 1}</td>
                         <td className="border-2 border-green-200 p-2 text-xs font-medium">{producto.nombre}</td>
-                        <td className="border-2 border-green-200 p-2 text-xs">
-                          <input
-                            type="text"
-                            value={producto.codigo}
-                            onChange={(e) => {
-                              const nuevos = [...productosSeleccionados];
-                              nuevos[index].codigo = e.target.value;
-                              setProductosSeleccionados(nuevos);
-                            }}
-                            className="w-full p-1 border border-green-300 rounded text-xs"
-                            placeholder="Código"
-                          />
-                        </td>
                         <td className="border-2 border-green-200 p-2 text-xs">
                           <input
                             type="number"

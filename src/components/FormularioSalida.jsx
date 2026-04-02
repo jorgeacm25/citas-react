@@ -208,7 +208,6 @@ const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar }) =>
                     <div className="flex justify-between items-center">
                       <div>
                         <span className="font-bold">{combo.nombre}</span>
-                        <span className="text-sm text-gray-600 ml-2">${combo.precio.toFixed(2)}</span>
                       </div>
                       {!tieneStock && (
                         <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">

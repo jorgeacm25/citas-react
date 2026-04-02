@@ -2,7 +2,6 @@ export const combosData = [
   {
     id: 1,
     nombre: "Combo 1",
-    precio: 10.00,
     productos: [
       { nombre: "Cerdo Lomo", codigo: "1050-440", cantidad: 1, unidad: "lb" },
       { nombre: "Pollo 1 lb", codigo: "Cod-425-500", cantidad: 1, unidad: "lb" },
@@ -43,7 +42,6 @@ export const combosData = [
   {
     id: 2,
     nombre: "Combo 2",
-    precio: 15.00,
     productos: [
       { nombre: "Cerdo Lomo", codigo: "1050-440", cantidad: 10, unidad: "lb" },
       { nombre: "Pollo 1 lb", codigo: "Cod-425-500", cantidad: 20, unidad: "lb" },

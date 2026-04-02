@@ -41,17 +41,6 @@ const obtenerCategoriaAutomatica = (nombre = '') => {
   return 'Otros';
 };
 
-const obtenerCodigoPorNombre = (nombreProducto = '', combos = []) => {
-  for (const combo of combos) {
-    for (const producto of combo.productos || []) {
-      if ((producto.nombre || '').toLowerCase() === nombreProducto.toLowerCase()) {
-        return producto.codigo || '';
-      }
-    }
-  }
-  return '';
-};
-
 const diasHastaFecha = (fechaISO) => {
   if (!fechaISO) return null;
   const hoy = new Date();
@@ -78,8 +67,7 @@ function App() {
   const [usuario, setUsuario] = useState(null);
   const [mostrarModalAuth, setMostrarModalAuth] = useState(false);
   const [pasoRegistro, setPasoRegistro] = useState('');
-  
-  // Estados para modales de acciones
+
   const [modalAgregar, setModalAgregar] = useState({ abierto: false, producto: null });
   const [modalModificar, setModalModificar] = useState({ abierto: false, producto: null });
   const [modalInfo, setModalInfo] = useState({ abierto: false, producto: null });
@@ -117,7 +105,7 @@ function App() {
   // Función para agregar al historial
   const agregarAlHistorial = (tipo, accion, detalle, datos = {}) => {
     const nuevaEntrada = {
-      id: historial.length + 1,
+      id: Date.now() + Math.floor(Math.random() * 1000000),
       fecha: new Date().toLocaleString('es-CU', { 
         year: 'numeric', 
         month: '2-digit', 
@@ -131,7 +119,7 @@ function App() {
       usuario: usuario?.nombre || 'Sistema',
       datos
     };
-    setHistorial([nuevaEntrada, ...historial]);
+    setHistorial((prevHistorial) => [nuevaEntrada, ...prevHistorial]);
   };
 
   const handleLoginTrabajador = (datosUsuario) => {
@@ -235,11 +223,12 @@ function App() {
     agregarAlHistorial('entrada', 'Nuevo Producto', 
       `Se agregó ${nuevoProducto.nombre} (${nuevoProducto.cantidad} ${nuevoProducto.unidad})`,
       {
+        movimiento: 'entrada',
+        producto_id: nuevoId,
         producto_nombre: nuevoProducto.nombre,
         cantidad: nuevoProducto.cantidad,
         unidad: nuevoProducto.unidad,
-        categoria: productoConCategoria.categoria,
-        precio_unitario: nuevoProducto.precioUnitario || 0
+        categoria: productoConCategoria.categoria
       }
     );
     setMostrarFormulario(false);
@@ -255,6 +244,7 @@ function App() {
     agregarAlHistorial('entrada', 'Entrada de Producto', 
       `Se agregaron ${cantidadAgregar} ${producto.unidad} a ${producto.nombre}`,
       {
+        movimiento: 'entrada',
         producto_id: id,
         producto_nombre: producto.nombre,
         cantidad_anterior: producto.cantidad,
@@ -341,15 +331,8 @@ function App() {
   // Función para registrar salida múltiple
   const registrarSalidaMultiple = (items, tipoSalida = 'producto', comboInfo = null, datosSalida = {}) => {
     let productosActualizados = [...productos];
-    let detalle = '';
     const motivoTexto = datosSalida?.motivo ? ` | Motivo: ${datosSalida.motivo}` : '';
     const clienteTexto = datosSalida?.cliente ? ` | Cliente: ${datosSalida.cliente}` : '';
-    
-    let datosHistorial = {
-      tipo_salida: tipoSalida,
-      motivo: datosSalida?.motivo || 'No especificado',
-      cliente: datosSalida?.cliente || 'No especificado'
-    };
 
     if (tipoSalida === 'producto') {
       items.forEach(item => {
@@ -362,36 +345,64 @@ function App() {
           }
           return producto;
         });
+
+        agregarAlHistorial(
+          'salida',
+          'Salida de Producto',
+          `Salida: ${item.cantidad} ${item.producto.unidad} de ${item.producto.nombre}${motivoTexto}${clienteTexto}`,
+          {
+            movimiento: 'salida',
+            tipo_salida: 'producto',
+            producto_id: item.producto.id,
+            producto_nombre: item.producto.nombre,
+            cantidad: item.cantidad,
+            unidad: item.producto.unidad,
+            motivo: datosSalida?.motivo || 'No especificado',
+            cliente: datosSalida?.cliente || 'No especificado'
+          }
+        );
       });
-      detalle = `Salida de ${items.length} productos (${items.map(i => `${i.cantidad} ${i.producto.nombre}`).join(', ')})${motivoTexto}${clienteTexto}`;
-      datosHistorial.productos = items.map(item => ({
-        nombre: item.producto.nombre,
-        cantidad: item.cantidad,
-        unidad: item.producto.unidad,
-        id: item.producto.id
-      }));
-      datosHistorial.cantidad_total_items = items.length;
     } else {
       // Salida de combo
+      const cantidadCombos = comboInfo.cantidadSalida || 1;
       comboInfo.productos.forEach(item => {
+        const cantidadSalida = item.cantidad * cantidadCombos;
+        let productoCoincidente = null;
+
         productosActualizados = productosActualizados.map(producto => {
           if (producto.nombre === item.nombre) {
+            productoCoincidente = producto;
             return {
               ...producto,
-              cantidad: producto.cantidad - item.cantidad
+              cantidad: producto.cantidad - cantidadSalida
             };
           }
           return producto;
         });
+
+        if (productoCoincidente) {
+          agregarAlHistorial(
+            'salida',
+            'Salida de Producto por Combo',
+            `Salida: ${cantidadSalida} ${item.unidad} de ${item.nombre} (Combo: ${comboInfo.nombre})${motivoTexto}${clienteTexto}`,
+            {
+              movimiento: 'salida',
+              tipo_salida: 'combo',
+              combo_nombre: comboInfo.nombre,
+              cantidad_combos: cantidadCombos,
+              producto_id: productoCoincidente.id,
+              producto_nombre: item.nombre,
+              cantidad: cantidadSalida,
+              unidad: item.unidad,
+              motivo: datosSalida?.motivo || 'No especificado',
+              cliente: datosSalida?.cliente || 'No especificado'
+            }
+          );
+        }
       });
-      detalle = `Salida de combo ${comboInfo.nombre} (${comboInfo.productos.length} productos)${motivoTexto}${clienteTexto}`;
-      datosHistorial.combo_nombre = comboInfo.nombre;
-      datosHistorial.combo_productos = comboInfo.productos;
-      datosHistorial.cantidad_productos = comboInfo.productos.length;
     }
 
     setProductos(productosActualizados);
-    agregarAlHistorial('salida', 'Salida de Inventario', detalle, datosHistorial);
     alert(`Salida registrada exitosamente`);
     setSeccionActiva(null);
   };
@@ -399,8 +410,7 @@ function App() {
   const productosEnriquecidos = productos.map((producto) => ({
     ...producto,
     categoria: producto.categoria || obtenerCategoriaAutomatica(producto.nombre),
-    proveedor: producto.proveedor || producto.operador || 'Sin proveedor',
-    codigoProducto: producto.codigoProducto || obtenerCodigoPorNombre(producto.nombre, combos),
+    proveedor: producto.proveedor || producto.operador || 'Sin proveedor'
   }));
 
   const proveedoresDisponibles = Array.from(
@@ -436,13 +446,12 @@ function App() {
     .map(([cliente]) => cliente)
     .slice(0, 15);
 
-  // Filtrar productos por texto, código, categoría, proveedor, vencimiento y rango de stock
+  // Filtrar productos por texto, categoría, proveedor, vencimiento y rango de stock
   const productosFiltrados = productosEnriquecidos.filter((producto) => {
     const termino = terminoBusqueda.toLowerCase().trim();
     const coincideTexto =
       !termino ||
-      producto.nombre.toLowerCase().includes(termino) ||
-      (producto.codigoProducto || '').toLowerCase().includes(termino);
+      producto.nombre.toLowerCase().includes(termino);
 
     const coincideCategoria =
       filtroCategoria === 'todas' || producto.categoria === filtroCategoria;
@@ -655,6 +664,7 @@ function App() {
         {modalInfo.abierto && (
           <ModalInfoProducto
             producto={modalInfo.producto}
+            historial={historial}
             onCerrar={() => setModalInfo({ abierto: false, producto: null })}
           />
         )}
@@ -749,7 +759,7 @@ function App() {
                 <div className="relative max-w-md mx-auto">
                   <input
                     type="text"
-                    placeholder="Buscar por nombre o codigo..."
+                    placeholder="Buscar por nombre..."
                     value={terminoBusqueda}
                     onChange={(e) => setTerminoBusqueda(e.target.value)}
                     className="w-full p-3 pl-10 border-2 border-orange-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-orange-600 text-base"
@@ -799,7 +809,6 @@ function App() {
                       <tr>
                         <th className="border-2 border-orange-200 p-2 text-left text-xs font-bold">ID</th>
                         <th className="border-2 border-orange-200 p-2 text-left text-xs font-bold">Nombre</th>
-                        <th className="border-2 border-orange-200 p-2 text-left text-xs font-bold">Codigo</th>
                         <th className="border-2 border-orange-200 p-2 text-left text-xs font-bold">Proveedor</th>
                         <th className="border-2 border-orange-200 p-2 text-left text-xs font-bold">Categoria</th>
                         <th className="border-2 border-orange-200 p-2 text-left text-xs font-bold">Cantidad</th>
@@ -814,7 +823,7 @@ function App() {
                         Object.entries(productosPorCategoria).map(([categoria, items]) => (
                           <Fragment key={`grupo-${categoria}`}>
                             <tr key={`cat-${categoria}`} className="bg-orange-100/70">
-                              <td colSpan="10" className="border-2 border-orange-200 p-2 text-xs font-bold text-orange-700 uppercase">
+                              <td colSpan="9" className="border-2 border-orange-200 p-2 text-xs font-bold text-orange-700 uppercase">
                                 Categoria: {categoria} ({items.length})
                               </td>
                             </tr>
@@ -824,7 +833,6 @@ function App() {
                               <tr key={producto.id} className="hover:bg-orange-50/50">
                                 <td className="border-2 border-orange-200 p-2 text-xs">{producto.id}</td>
                                 <td className="border-2 border-orange-200 p-2 text-xs font-medium">{producto.nombre}</td>
-                                <td className="border-2 border-orange-200 p-2 text-xs">{producto.codigoProducto || '—'}</td>
                                 <td className="border-2 border-orange-200 p-2 text-xs">{producto.proveedor || '—'}</td>
                                 <td className="border-2 border-orange-200 p-2 text-xs">{producto.categoria || 'Sin categoria'}</td>
                                 <td className="border-2 border-orange-200 p-2 text-xs">
@@ -882,7 +890,7 @@ function App() {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan="10" className="text-center p-4 text-gray-500 text-sm">
+                          <td colSpan="9" className="text-center p-4 text-gray-500 text-sm">
                             No se encontraron productos que coincidan con la búsqueda
                           </td>
                         </tr>

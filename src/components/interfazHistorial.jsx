@@ -5,6 +5,75 @@ const InterfazHistorial = ({ historial }) => {
   const [busqueda, setBusqueda] = useState('');
   const [detalleSeleccionado, setDetalleSeleccionado] = useState(null);
 
+  const formatearEtiqueta = (texto) => {
+    if (!texto) return '';
+    return texto
+      .replace(/_/g, ' ')
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/^./, (c) => c.toUpperCase());
+  };
+
+  const renderValorDato = (valor, nivel = 0) => {
+    if (valor === null || valor === undefined || valor === '') {
+      return <span className="text-gray-400 italic">No especificado</span>;
+    }
+
+    if (Array.isArray(valor)) {
+      if (valor.length === 0) {
+        return <span className="text-gray-400 italic">Sin elementos</span>;
+      }
+
+      return (
+        <div className="space-y-2">
+          {valor.map((item, index) => (
+            <div
+              key={`${nivel}-${index}`}
+              className="bg-white border border-purple-200 rounded-lg p-3"
+            >
+              {typeof item === 'object' && item !== null ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {Object.entries(item).map(([k, v]) => (
+                    <div key={k}>
+                      <p className="text-[11px] font-semibold text-purple-700 uppercase tracking-wide">
+                        {formatearEtiqueta(k)}
+                      </p>
+                      <p className="text-sm text-gray-800 break-words">
+                        {typeof v === 'object' ? JSON.stringify(v) : String(v)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-800 break-words">{String(item)}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (typeof valor === 'object') {
+      return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {Object.entries(valor).map(([k, v]) => (
+            <div key={k} className="bg-white border border-purple-200 rounded-lg p-3">
+              <p className="text-[11px] font-semibold text-purple-700 uppercase tracking-wide mb-1">
+                {formatearEtiqueta(k)}
+              </p>
+              <p className="text-sm text-gray-800 break-words">
+                {typeof v === 'object' ? JSON.stringify(v) : String(v)}
+              </p>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return <span className="text-sm text-gray-800 break-words">{String(valor)}</span>;
+  };
+
   const getColorPorTipo = (tipo) => {
     switch(tipo) {
       case 'entrada': return 'bg-green-100 text-green-700 border-green-300';
@@ -156,23 +225,24 @@ const InterfazHistorial = ({ historial }) => {
       {/* Modal de detalles */}
       {detalleSeleccionado && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto border-2 border-purple-100">
             {/* Encabezado */}
-            <div className="flex justify-between items-start gap-4 mb-6">
+            <div className="sticky top-0 bg-white z-10 pb-4 mb-5 border-b border-purple-100 flex justify-between items-start gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <div className={`p-2 rounded-lg ${getColorPorTipo(detalleSeleccionado.tipo)}`}>
                     {getIconoPorTipo(detalleSeleccionado.tipo)}
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-800">{detalleSeleccionado.accion}</h3>
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-800">{detalleSeleccionado.accion}</h3>
                 </div>
                 <p className={`text-xs px-2 py-1 rounded-full inline-block ${getColorPorTipo(detalleSeleccionado.tipo)}`}>
-                  {detalleSeleccionado.tipo}
+                  {formatearEtiqueta(detalleSeleccionado.tipo)}
                 </p>
               </div>
               <button
                 onClick={() => setDetalleSeleccionado(null)}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold w-10 h-10 rounded-full hover:bg-gray-100"
+                aria-label="Cerrar detalle"
               >
                 ✕
               </button>
@@ -181,14 +251,14 @@ const InterfazHistorial = ({ historial }) => {
             {/* Contenido */}
             <div className="space-y-4">
               {/* Información general */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                   <p className="text-sm font-bold text-gray-600 mb-1">Fecha y Hora</p>
-                  <p className="text-lg font-semibold text-gray-800">{detalleSeleccionado.fecha}</p>
+                  <p className="text-base sm:text-lg font-semibold text-gray-800 break-words">{detalleSeleccionado.fecha}</p>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                   <p className="text-sm font-bold text-gray-600 mb-1">Realizado por</p>
-                  <p className="text-lg font-semibold text-gray-800">{detalleSeleccionado.usuario}</p>
+                  <p className="text-base sm:text-lg font-semibold text-gray-800 break-words">{detalleSeleccionado.usuario}</p>
                 </div>
               </div>
 
@@ -204,21 +274,16 @@ const InterfazHistorial = ({ historial }) => {
                   <p className="text-sm font-bold text-purple-700 mb-3">Información Adicional</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {Object.entries(detalleSeleccionado.datos).map(([clave, valor]) => {
-                      // Si es un array o objeto, mostrarlo de forma legible
-                      if (typeof valor === 'object') {
-                        return (
-                          <div key={clave} className="col-span-1 sm:col-span-2">
-                            <p className="text-xs font-semibold text-purple-700 uppercase mb-1">{clave}</p>
-                            <pre className="text-xs bg-white p-2 rounded border border-purple-300 overflow-x-auto">
-                              {JSON.stringify(valor, null, 2)}
-                            </pre>
-                          </div>
-                        );
-                      }
+                      const ocupaAnchoCompleto = Array.isArray(valor) || (typeof valor === 'object' && valor !== null);
+
                       return (
-                        <div key={clave}>
-                          <p className="text-xs font-semibold text-purple-700 uppercase mb-1">{clave}</p>
-                          <p className="text-sm font-medium text-gray-800">{String(valor)}</p>
+                        <div key={clave} className={ocupaAnchoCompleto ? 'col-span-1 sm:col-span-2' : ''}>
+                          <p className="text-xs font-semibold text-purple-700 uppercase tracking-wide mb-1">
+                            {formatearEtiqueta(clave)}
+                          </p>
+                          <div className="bg-white border border-purple-200 rounded-lg p-3">
+                            {renderValorDato(valor)}
+                          </div>
                         </div>
                       );
                     })}

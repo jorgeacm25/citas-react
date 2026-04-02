@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import ModalModificarComboSalida from './ModalModificarComboSalida';
 
 const InterfazSalida = ({ productos, combos, clientesFrecuentes = [], onRegistrarSalida, onCancelar }) => {
   const [tipoSalida, setTipoSalida] = useState('producto'); // 'producto' o 'combo'
   const [itemsSalida, setItemsSalida] = useState([]);
   const [comboSeleccionado, setComboSeleccionado] = useState(null);
+  const [comboEditado, setComboEditado] = useState(null);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
   const [cantidad, setCantidad] = useState(1);
   const [motivo, setMotivo] = useState('');
@@ -12,6 +14,7 @@ const InterfazSalida = ({ productos, combos, clientesFrecuentes = [], onRegistra
   const [clienteVentaNuevo, setClienteVentaNuevo] = useState('');
   const [terminoBusqueda, setTerminoBusqueda] = useState('');
   const [error, setError] = useState('');
+  const [modalEditarComboAbierto, setModalEditarComboAbierto] = useState(false);
 
   const clienteVentaFinal = clienteVenta === '__nuevo__'
     ? clienteVentaNuevo.trim()
@@ -71,6 +74,20 @@ const InterfazSalida = ({ productos, combos, clientesFrecuentes = [], onRegistra
     setItemsSalida(nuevosItems);
   };
 
+  const comboParaUsar = comboEditado || comboSeleccionado;
+
+  const handleEditarCombo = () => {
+    if (comboSeleccionado) {
+      setComboEditado(JSON.parse(JSON.stringify(comboSeleccionado)));
+      setModalEditarComboAbierto(true);
+    }
+  };
+
+  const handleGuardarComboEditado = (comboModificado) => {
+    setComboEditado(comboModificado);
+    setModalEditarComboAbierto(false);
+  };
+
   const handleRegistrarSalida = () => {
     if (tipoSalida === 'producto') {
       if (itemsSalida.length === 0) {
@@ -78,17 +95,18 @@ const InterfazSalida = ({ productos, combos, clientesFrecuentes = [], onRegistra
         return;
       }
     } else {
-      if (!comboSeleccionado) {
+      if (!comboParaUsar) {
         setError('Debe seleccionar un combo');
         return;
       }
       
       // Verificar stock para todos los productos del combo
       const productosSinStock = [];
-      comboSeleccionado.productos.forEach(item => {
+      comboParaUsar.productos.forEach(item => {
         const producto = productos.find(p => p.nombre === item.nombre);
-        if (!producto || producto.cantidad < item.cantidad) {
-          productosSinStock.push(`${item.nombre} (requiere ${item.cantidad} ${item.unidad})`);
+        const cantidadNecesaria = item.cantidad * (comboParaUsar.cantidadSalida || 1);
+        if (!producto || producto.cantidad < cantidadNecesaria) {
+          productosSinStock.push(`${item.nombre} (requiere ${cantidadNecesaria} ${item.unidad})`)
         }
       });
       
@@ -122,7 +140,7 @@ const InterfazSalida = ({ productos, combos, clientesFrecuentes = [], onRegistra
     if (tipoSalida === 'producto') {
       onRegistrarSalida(itemsSalida, 'producto', null, datosSalida);
     } else {
-      onRegistrarSalida([], 'combo', comboSeleccionado, datosSalida);
+      onRegistrarSalida([], 'combo', comboParaUsar, datosSalida);
     }
   };
 
@@ -316,9 +334,19 @@ const InterfazSalida = ({ productos, combos, clientesFrecuentes = [], onRegistra
         <>
           {/* Selección de combo */}
           <div className="mb-6">
-            <label className="block text-gray-700 font-bold text-sm mb-2">
-              Seleccionar Combo
-            </label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="block text-gray-700 font-bold text-sm">
+                Seleccionar Combo
+              </label>
+              {comboParaUsar && (
+                <button
+                  onClick={handleEditarCombo}
+                  className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-all duration-300"
+                >
+                  ✏️ Editar Combo Seleccionado
+                </button>
+              )}
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto border-2 border-gray-200 rounded-lg p-3 mb-4">
               {combos.map(combo => {
                 const tieneStock = combo.productos.every(item => {
@@ -326,10 +354,21 @@ const InterfazSalida = ({ productos, combos, clientesFrecuentes = [], onRegistra
                   return producto && producto.cantidad >= item.cantidad;
                 });
 
+                const esComboEditado = comboEditado?.id === combo.id;
+                const comboParaMostrar = esComboEditado ? comboEditado : combo;
+                const tieneStockMostrado = comboParaMostrar.productos.every(item => {
+                  const producto = productos.find(p => p.nombre === item.nombre);
+                  const cantidadNecesaria = item.cantidad * (comboParaMostrar.cantidadSalida || 1);
+                  return producto && producto.cantidad >= cantidadNecesaria;
+                });
+
                 return (
                   <div
                     key={combo.id}
-                    onClick={() => setComboSeleccionado(combo)}
+                    onClick={() => {
+                      setComboSeleccionado(combo);
+                      setComboEditado(null);
+                    }}
                     className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
                       comboSeleccionado?.id === combo.id
                         ? 'border-red-500 bg-red-50'
@@ -337,23 +376,38 @@ const InterfazSalida = ({ productos, combos, clientesFrecuentes = [], onRegistra
                     }`}
                   >
                     <div className="flex justify-between items-center mb-2">
-                      <h3 className="font-bold text-lg">{combo.nombre}</h3>
-                      {!tieneStock && (
+                      <div>
+                        <h3 className="font-bold text-lg">{comboParaMostrar.nombre}</h3>
+                        {comboEditado?.id === combo.id && (
+                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                            Editado
+                          </span>
+                        )}
+                      </div>
+                      {!tieneStockMostrado && (
                         <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">
                           Sin stock
                         </span>
                       )}
                     </div>
                     <p className="text-sm text-gray-600 mb-2">
-                      {combo.productos.length} productos
+                      {comboParaMostrar.productos.length} productos
                     </p>
+                    {comboParaMostrar.cantidadSalida && comboParaMostrar.cantidadSalida > 1 && (
+                      <p className="text-xs text-blue-600 font-bold mb-2">
+                        Cantidad: {comboParaMostrar.cantidadSalida} combos
+                      </p>
+                    )}
                     <div className="text-xs text-gray-500">
-                      {combo.productos.map((p, idx) => (
+                      {comboParaMostrar.productos.slice(0, 5).map((p, idx) => (
                         <div key={idx} className="flex justify-between">
                           <span>{p.nombre}</span>
                           <span>{p.cantidad} {p.unidad}</span>
                         </div>
                       ))}
+                      {comboParaMostrar.productos.length > 5 && (
+                        <div className="text-gray-400 font-bold">... y {comboParaMostrar.productos.length - 5} más</div>
+                      )}
                     </div>
                   </div>
                 );
@@ -462,7 +516,7 @@ const InterfazSalida = ({ productos, combos, clientesFrecuentes = [], onRegistra
           onClick={handleRegistrarSalida}
           className="w-full sm:w-auto px-6 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={(tipoSalida === 'producto' && itemsSalida.length === 0) || 
-                   (tipoSalida === 'combo' && !comboSeleccionado) || 
+                   (tipoSalida === 'combo' && !comboParaUsar) || 
                    !motivo ||
                    (motivo === 'venta' && !clienteVentaFinal) ||
                    (motivo === 'otro' && !motivoOtro.trim())}
@@ -470,6 +524,16 @@ const InterfazSalida = ({ productos, combos, clientesFrecuentes = [], onRegistra
           Registrar Salida
         </button>
       </div>
+
+      {/* Modal de edición de combo */}
+      {modalEditarComboAbierto && comboEditado && (
+        <ModalModificarComboSalida
+          combo={comboEditado}
+          productos={productos}
+          onGuardar={handleGuardarComboEditado}
+          onCerrar={() => setModalEditarComboAbierto(false)}
+        />
+      )}
     </div>
   );
 };
