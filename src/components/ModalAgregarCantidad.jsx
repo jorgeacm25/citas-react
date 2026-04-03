@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 const ModalAgregarCantidad = ({ producto, onAgregar, onCerrar, usuario }) => {
   const [cantidad, setCantidad] = useState('');
+  const [nuevaFechaVencimiento, setNuevaFechaVencimiento] = useState(producto.fechaVencimiento || '');
   const [error, setError] = useState('');
   const [confirmando, setConfirmando] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -32,11 +33,16 @@ const ModalAgregarCantidad = ({ producto, onAgregar, onCerrar, usuario }) => {
       return;
     }
 
-    // Preparar payload según el endpoint PUT /api/product
+    // Convertir fecha de vencimiento a ISO (si existe)
+    let endDate = null;
+    if (nuevaFechaVencimiento) {
+      endDate = new Date(nuevaFechaVencimiento).toISOString();
+    }
+
     const payload = {
       id: producto.id,
       quantity: nuevaCantidad,
-      endDate: producto.fechaVencimiento ? new Date(producto.fechaVencimiento).toISOString() : null,
+      endDate: endDate,
       adminId: null,
       userId: userId
     };
@@ -53,8 +59,8 @@ const ModalAgregarCantidad = ({ producto, onAgregar, onCerrar, usuario }) => {
       });
 
       if (response.ok) {
-        // Actualizar estado local en App
-        onAgregar(producto.id, cantidadAgregar);
+        // Actualizar estado local en App (cantidad y fecha de vencimiento)
+        onAgregar(producto.id, cantidadAgregar, nuevaFechaVencimiento);
         onCerrar();
       } else {
         const errorText = await response.text();
@@ -79,6 +85,9 @@ const ModalAgregarCantidad = ({ producto, onAgregar, onCerrar, usuario }) => {
         </p>
         <p className="text-sm text-gray-500 mb-2">
           Cantidad actual: <span className="font-bold">{producto.cantidad} {producto.unidad}</span>
+        </p>
+        <p className="text-sm text-gray-500 mb-2">
+          Fecha de vencimiento actual: <span className="font-bold">{producto.fechaVencimiento || 'No especificada'}</span>
         </p>
 
         {error && (
@@ -105,6 +114,22 @@ const ModalAgregarCantidad = ({ producto, onAgregar, onCerrar, usuario }) => {
                 autoFocus
                 disabled={loading}
               />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-gray-800 font-extrabold text-base mb-2">
+                Nueva fecha de vencimiento (opcional)
+              </label>
+              <input
+                type="date"
+                value={nuevaFechaVencimiento}
+                onChange={(e) => setNuevaFechaVencimiento(e.target.value)}
+                className="w-full p-3 border-2 border-green-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-600 text-lg"
+                disabled={loading}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Dejar vacío para mantener la fecha actual o eliminarla (según el backend).
+              </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
@@ -140,6 +165,9 @@ const ModalAgregarCantidad = ({ producto, onAgregar, onCerrar, usuario }) => {
               </p>
               <p className="text-base sm:text-lg">
                 <span className="font-extrabold">Nueva cantidad total:</span> {producto.cantidad + parseInt(cantidad || 0)} {producto.unidad}
+              </p>
+              <p className="text-base sm:text-lg">
+                <span className="font-extrabold">Nueva fecha de vencimiento:</span> {nuevaFechaVencimiento || 'No especificada'}
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">

@@ -81,17 +81,6 @@ function Header({ usuario, onLogout, onMostrarLogin, onMostrarRegistro, onDashbo
                                 Historial
                             </button>
 
-                            <button 
-                                onClick={onReportesClick}
-                                className={`px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 border-2 font-extrabold rounded-lg text-xs sm:text-sm md:text-base ${
-                                    seccionActiva === 'reportes'
-                                        ? 'border-cyan-700 bg-cyan-700 text-white'
-                                        : 'border-cyan-700 bg-white text-cyan-800 hover:bg-cyan-100'
-                                }`}
-                            >
-                                Reportes
-                            </button>
-
                             <div className="relative ml-0 sm:ml-2">
                                 <button
                                     onClick={() => setMostrarMenu(!mostrarMenu)}
