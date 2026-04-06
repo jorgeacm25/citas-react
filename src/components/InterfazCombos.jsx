@@ -213,54 +213,62 @@ const InterfazCombos = ({ setCombos, productos, onModificarCombo, onAgregarAlHis
   };
 
   const deleteCombo = async () => {
-    if (!comboToDelete) return;
-    const token = localStorage.getItem('token');
-    if (!token) {
-      alert('No hay sesión activa. Inicie sesión nuevamente.');
+  if (!comboToDelete) return;
+  const token = localStorage.getItem('token');
+  if (!token) {
+    alert('No hay sesión activa. Inicie sesión nuevamente.');
+    setShowDeleteConfirm(false);
+    setComboToDelete(null);
+    return;
+  }
+  const userId = usuario?.id;
+  if (!userId) {
+    alert('No se pudo identificar al usuario.');
+    return;
+  }
+
+  setDeleting(true);
+  try {
+    const response = await fetch(`http://localhost:5228/api/combo/${comboToDelete.id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        adminId: null,
+        userId: userId
+      })
+    });
+
+    if (response.ok) {
+      // Eliminar del estado local
+      const combosActualizados = combos.filter(c => c.id !== comboToDelete.id);
+      setCombosLocal(combosActualizados);
+      if (setCombos) setCombos(combosActualizados);
+      
+      if (comboSeleccionado?.id === comboToDelete.id) {
+        setComboSeleccionado(null);
+      }
+      
+      onAgregarAlHistorial('eliminacion', 'Combo Eliminado', 
+        `Se eliminó el combo ${comboToDelete.nombre}`);
+      
       setShowDeleteConfirm(false);
       setComboToDelete(null);
-      return;
+      window.location.reload();
+      alert('Combo eliminado correctamente');
+    } else {
+      const errorText = await response.text();
+      alert(`Error al eliminar: ${errorText}`);
     }
-
-    setDeleting(true);
-    try {
-      const response = await fetch(`http://localhost:5228/api/combo/${comboToDelete.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        // Eliminar del estado local
-        const combosActualizados = combos.filter(c => c.id !== comboToDelete.id);
-        setCombosLocal(combosActualizados);
-        if (setCombos) setCombos(combosActualizados);
-        
-        // Si el combo eliminado estaba seleccionado, limpiar selección
-        if (comboSeleccionado?.id === comboToDelete.id) {
-          setComboSeleccionado(null);
-        }
-        
-        // Registrar en historial
-        onAgregarAlHistorial('eliminacion', 'Combo Eliminado', 
-          `Se eliminó el combo ${comboToDelete.nombre}`);
-        
-        setShowDeleteConfirm(false);
-        setComboToDelete(null);
-        window.location.reload();
-        alert('Combo eliminado correctamente');
-      } else {
-        const errorText = await response.text();
-        alert(`Error al eliminar: ${errorText}`);
-      }
-    } catch (error) {
-      console.error(error);
-      alert('Error de conexión con el servidor');
-    } finally {
-      setDeleting(false);
-    }
-  };
+  } catch (error) {
+    console.error(error);
+    alert('Error de conexión con el servidor');
+  } finally {
+    setDeleting(false);
+  }
+};
 
   const combosFiltrados = combos.filter(combo =>
     combo.nombre.toLowerCase().includes(terminoBusqueda.toLowerCase())

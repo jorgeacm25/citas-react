@@ -575,7 +575,7 @@ function App() {
         )}
         {modalModificar.abierto && <ModalModificarProducto producto={modalModificar.producto} onModificar={modificarProducto} onCerrar={() => setModalModificar({ abierto: false, producto: null })} />}
         {modalInfo.abierto && <ModalInfoProducto producto={modalInfo.producto} onCerrar={() => setModalInfo({ abierto: false, producto: null })} />}
-        {modalEliminar.abierto && <ModalConfirmarEliminar producto={modalEliminar.producto} onEliminar={eliminarProducto} onCerrar={() => setModalEliminar({ abierto: false, producto: null })} />}
+        {modalEliminar.abierto && <ModalConfirmarEliminar producto={modalEliminar.producto} onEliminar={eliminarProducto} onCerrar={() => setModalEliminar({ abierto: false, producto: null })} usuario={usuario}/>}
         
         {location.pathname === APP_ROUTES.COMBOS && (
           <div className='mt-8 px-4 sm:px-6 md:px-8 pb-8'>

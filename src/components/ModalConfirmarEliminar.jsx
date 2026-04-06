@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const ModalConfirmarEliminar = ({ producto, onEliminar, onCerrar }) => {
+const ModalConfirmarEliminar = ({ producto, onEliminar, onCerrar, usuario }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -8,18 +8,38 @@ const ModalConfirmarEliminar = ({ producto, onEliminar, onCerrar }) => {
     setLoading(true);
     setError('');
 
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('No hay sesión activa. Inicie sesión nuevamente.');
+      setLoading(false);
+      return;
+    }
+    const userId = usuario?.id;
+    if (!userId) {
+      setError('No se pudo identificar al usuario. Reintente.');
+      setLoading(false);
+      return;
+    }
+
+    const payload = {
+      adminId: null,
+      userId: userId
+    };
+
     try {
       const response = await fetch(`http://localhost:5228/api/product/${producto.id}`, {
         method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
       });
 
       if (response.ok) {
         onEliminar(producto.id);
         onCerrar();
-        window.location.reload();
+        window.location.reload(); // recarga opcional
       } else {
         const errorText = await response.text();
         setError(errorText || `Error ${response.status}: No se pudo eliminar`);
