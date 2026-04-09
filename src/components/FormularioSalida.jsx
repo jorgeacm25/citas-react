@@ -2,204 +2,330 @@ import { useState, useEffect } from 'react';
 
 const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar, usuario }) => {
   const [tipoSeleccionado, setTipoSeleccionado] = useState('producto');
+  // Estados para productos (salida de productos)
+  const [itemsProductos, setItemsProductos] = useState([]);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+  const [cantidadProducto, setCantidadProducto] = useState(1);
+  const [terminoBusquedaProducto, setTerminoBusquedaProducto] = useState('');
+  const [productosFiltrados, setProductosFiltrados] = useState([]);
+
+  // Estados para combo (sección combo, simplificada pero funcional)
   const [comboSeleccionado, setComboSeleccionado] = useState(null);
-  const [cantidad, setCantidad] = useState(1);
+  const [productosComboEditables, setProductosComboEditables] = useState([]);
+  const [productosExtra, setProductosExtra] = useState([]);
+  const [terminoBusquedaExtra, setTerminoBusquedaExtra] = useState('');
+  const [productosExtraFiltrados, setProductosExtraFiltrados] = useState([]);
+
+  // Estados comunes
   const [motivo, setMotivo] = useState('');
   const [cliente, setCliente] = useState('');
   const [error, setError] = useState('');
-  const [productosFiltrados, setProductosFiltrados] = useState([]);
-  const [terminoBusqueda, setTerminoBusqueda] = useState('');
   const [loading, setLoading] = useState(false);
-  // Estado para los productos editables del combo
-  const [productosComboEditables, setProductosComboEditables] = useState([]);
-  // Estados para agregar productos extra al combo
-  const [terminoBusquedaProductoExtra, setTerminoBusquedaProductoExtra] = useState('');
-  const [productosExtraFiltrados, setProductosExtraFiltrados] = useState([]);
+  // Inicializar fecha con formato datetime-local (YYYY-MM-DDThh:mm)
+ const [salidaDate, setSalidaDate] = useState(() => {
+  const today = new Date();
+  return today.toISOString().split('T')[0]; // "2026-04-09"
+});
 
-  // Filtrar productos según el tipo de selección
+  // Filtrar productos para la sección de productos
   useEffect(() => {
     if (tipoSeleccionado === 'producto') {
-      const filtrados = productos.filter(p => 
-        p.nombre.toLowerCase().includes(terminoBusqueda.toLowerCase())
+      const filtrados = productos.filter(p =>
+        p.nombre.toLowerCase().includes(terminoBusquedaProducto.toLowerCase()) &&
+        p.cantidad > 0 &&
+        !itemsProductos.some(item => item.id === p.id)
       );
       setProductosFiltrados(filtrados);
-    } else if (tipoSeleccionado === 'combo' && terminoBusquedaProductoExtra) {
-      const idsYaIncluidos = productosComboEditables.map(p => p.id);
+    }
+  }, [terminoBusquedaProducto, productos, itemsProductos, tipoSeleccionado]);
+
+  // Filtrar productos extra para combo
+  useEffect(() => {
+    if (tipoSeleccionado === 'combo' && terminoBusquedaExtra) {
+      const idsYaIncluidos = [
+        ...productosComboEditables.map(p => p.id),
+        ...productosExtra.map(p => p.id)
+      ];
       const filtrados = productos.filter(p =>
-        p.nombre.toLowerCase().includes(terminoBusquedaProductoExtra.toLowerCase()) &&
+        p.nombre.toLowerCase().includes(terminoBusquedaExtra.toLowerCase()) &&
+        p.cantidad > 0 &&
         !idsYaIncluidos.includes(p.id)
       );
       setProductosExtraFiltrados(filtrados);
+    } else {
+      setProductosExtraFiltrados([]);
     }
-  }, [terminoBusqueda, terminoBusquedaProductoExtra, productos, productosComboEditables, tipoSeleccionado]);
+  }, [terminoBusquedaExtra, productos, productosComboEditables, productosExtra, tipoSeleccionado]);
 
-  // Función para agregar un producto extra al combo editable
-  const agregarProductoExtra = (producto) => {
-    const nuevoProducto = {
+  // --- Funciones para productos (salida de productos) ---
+  const agregarProducto = () => {
+    if (!productoSeleccionado) {
+      setError('Debe seleccionar un producto');
+      return;
+    }
+    if (cantidadProducto <= 0) {
+      setError('La cantidad debe ser mayor a 0');
+      return;
+    }
+    if (cantidadProducto > productoSeleccionado.cantidad) {
+      setError(`Stock insuficiente. Disponible: ${productoSeleccionado.cantidad} ${productoSeleccionado.unidad}`);
+      return;
+    }
+    if (itemsProductos.some(item => item.id === productoSeleccionado.id)) {
+      setError('Este producto ya está en la lista');
+      return;
+    }
+    setItemsProductos([
+      ...itemsProductos,
+      {
+        id: productoSeleccionado.id,
+        nombre: productoSeleccionado.nombre,
+        cantidad: cantidadProducto,
+        unidad: productoSeleccionado.unidad,
+        stock: productoSeleccionado.cantidad
+      }
+    ]);
+    setProductoSeleccionado(null);
+    setCantidadProducto(1);
+    setTerminoBusquedaProducto('');
+    setError('');
+  };
+
+  const actualizarCantidadProducto = (index, nuevaCantidad) => {
+    const item = itemsProductos[index];
+    if (nuevaCantidad > item.stock) {
+      setError(`Stock insuficiente. Máximo: ${item.stock}`);
+      return;
+    }
+    if (nuevaCantidad <= 0) {
+      eliminarProducto(index);
+      return;
+    }
+    const nuevos = [...itemsProductos];
+    nuevos[index].cantidad = nuevaCantidad;
+    setItemsProductos(nuevos);
+    setError('');
+  };
+
+  const eliminarProducto = (index) => {
+    setItemsProductos(itemsProductos.filter((_, i) => i !== index));
+  };
+
+  // --- Funciones para combo ---
+  const seleccionarCombo = (combo) => {
+    setComboSeleccionado(combo);
+    const editables = combo.productos.map(p => ({
+      id: p.id,
+      nombre: p.nombre,
+      cantidad: p.cantidad,
+      unidad: p.unidad,
+      stock: productos.find(prod => prod.id === p.id)?.cantidad || 0,
+      incluido: true
+    }));
+    setProductosComboEditables(editables);
+    setProductosExtra([]);
+    setError('');
+  };
+
+  const toggleIncluirProductoCombo = (index) => {
+    const nuevos = [...productosComboEditables];
+    nuevos[index].incluido = !nuevos[index].incluido;
+    setProductosComboEditables(nuevos);
+  };
+
+  const actualizarCantidadProductoCombo = (index, nuevaCantidad) => {
+    const item = productosComboEditables[index];
+    if (nuevaCantidad > item.stock) {
+      setError(`Stock insuficiente. Máximo: ${item.stock}`);
+      return;
+    }
+    if (nuevaCantidad <= 0) {
+      const nuevos = [...productosComboEditables];
+      nuevos[index].cantidad = 0;
+      nuevos[index].incluido = false;
+      setProductosComboEditables(nuevos);
+      return;
+    }
+    const nuevos = [...productosComboEditables];
+    nuevos[index].cantidad = nuevaCantidad;
+    setProductosComboEditables(nuevos);
+    setError('');
+  };
+
+  const agregarProductoExtraCombo = (producto) => {
+    setProductosExtra([...productosExtra, {
       id: producto.id,
       nombre: producto.nombre,
       cantidad: 1,
       unidad: producto.unidad,
+      stock: producto.cantidad,
       incluido: true
-    };
-    setProductosComboEditables([...productosComboEditables, nuevoProducto]);
-    setTerminoBusquedaProductoExtra('');
-    setProductosExtraFiltrados([]);
+    }]);
+    setTerminoBusquedaExtra('');
+    setError('');
   };
 
+  const actualizarCantidadExtra = (index, nuevaCantidad) => {
+    const extra = productosExtra[index];
+    if (nuevaCantidad > extra.stock) {
+      setError(`Stock insuficiente. Máximo: ${extra.stock}`);
+      return;
+    }
+    if (nuevaCantidad <= 0) {
+      eliminarExtra(index);
+      return;
+    }
+    const nuevos = [...productosExtra];
+    nuevos[index].cantidad = nuevaCantidad;
+    setProductosExtra(nuevos);
+    setError('');
+  };
+
+  const eliminarExtra = (index) => {
+    setProductosExtra(productosExtra.filter((_, i) => i !== index));
+  };
+
+  // --- Envío de datos ---
   const handleRegistrarSalida = async () => {
     if (!motivo) {
-      setError('Debe especificar un motivo para la salida');
+      setError('Debe seleccionar un motivo');
       return;
     }
     const token = localStorage.getItem('token');
     if (!token) {
-      setError('No hay sesión activa. Inicie sesión nuevamente.');
+      setError('No hay sesión activa');
       return;
     }
     const userId = usuario?.id;
     if (!userId) {
-      setError('No se pudo identificar al usuario. Reintente.');
+      setError('No se pudo identificar al usuario');
       return;
     }
 
-    if (tipoSeleccionado === 'producto') {
-      // ----- SALIDA DE PRODUCTO (sin cambios) -----
-      if (!productoSeleccionado) {
-        setError('Debe seleccionar un producto');
-        return;
-      }
-      if (cantidad <= 0) {
-        setError('La cantidad debe ser mayor a 0');
-        return;
-      }
-      if (cantidad > productoSeleccionado.cantidad) {
-        setError(`No hay suficiente stock. Disponible: ${productoSeleccionado.cantidad} ${productoSeleccionado.unidad}`);
-        return;
-      }
+    const dateTime = new Date(salidaDate).toISOString();
+    let url = '';
+    let body = {};
 
-      const payload = {
-        productId: productoSeleccionado.id,
-        quantity: cantidad,
+    if (tipoSeleccionado === 'producto') {
+      if (itemsProductos.length === 0) {
+        setError('Debe agregar al menos un producto');
+        return;
+      }
+      url = 'http://localhost:5228/api/productOut';
+      body = {
+        products: itemsProductos.map(item => ({ id: item.id, quantity: item.cantidad })),
+        ProductOutDate: dateTime,
         outMotive: motivo,
         adminId: null,
         userId: userId,
-        customer: cliente || null
+        customer: cliente || ''
       };
-
-      setLoading(true);
-      try {
-        const response = await fetch('http://localhost:5228/api/productOut', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(payload)
-        });
-
-        if (response.ok) {
-          onRegistrarSalida(
-            [{ producto: productoSeleccionado, cantidad: cantidad }],
-            'producto',
-            null,
-            { motivo: motivo, cliente: cliente || '' }
-          );
-          onCerrar();
-          window.location.reload();
-        } else {
-          const errorText = await response.text();
-          setError(errorText || 'Error al registrar la salida');
-        }
-      } catch (err) {
-        console.error(err);
-        setError('Error de conexión con el servidor');
-      } finally {
-        setLoading(false);
-      }
-    } 
-    else {
-      // ----- SALIDA DE COMBO CON EDICIÓN Y AGREGADO DE PRODUCTOS EXTRA -----
+      console.log(dateTime)
+    } else {
       if (!comboSeleccionado) {
         setError('Debe seleccionar un combo');
         return;
       }
-
-      const productosSeleccionados = productosComboEditables.filter(p => p.incluido);
-      if (productosSeleccionados.length === 0) {
-        setError('Debe seleccionar al menos un producto del combo');
+      const productosComboIncluidos = productosComboEditables.filter(p => p.incluido && p.cantidad > 0);
+      if (productosComboIncluidos.length === 0 && productosExtra.length === 0) {
+        setError('Debe seleccionar al menos un producto del combo o agregar extras');
         return;
       }
-
-      // Validar stock individualmente
-      const productosSinStock = [];
-      for (const item of productosSeleccionados) {
-        const productoEnStock = productos.find(p => p.id === item.id);
-        if (!productoEnStock || productoEnStock.cantidad < item.cantidad) {
-          productosSinStock.push(`${item.nombre} (requiere ${item.cantidad} ${item.unidad})`);
+      // Validar stock de todos los productos
+      const todosProductos = [
+        ...productosComboIncluidos.map(p => ({ id: p.id, cantidad: p.cantidad, stock: p.stock })),
+        ...productosExtra.map(p => ({ id: p.id, cantidad: p.cantidad, stock: p.stock }))
+      ];
+      for (const prod of todosProductos) {
+        if (prod.cantidad > prod.stock) {
+          setError(`Stock insuficiente para algún producto. Verifique las cantidades.`);
+          return;
         }
       }
-      if (productosSinStock.length > 0) {
-        setError(`No hay suficiente stock para:\n${productosSinStock.join('\n')}`);
-        return;
-      }
-
-      const comboPayload = {
+      url = 'http://localhost:5228/api/comboOut';
+      body = {
         comboId: comboSeleccionado.id,
+        comboOutDate: dateTime,
         outMotive: motivo,
         adminId: null,
         userId: userId,
-        comboEntity: productosSeleccionados.map(p => ({
+        comboEntity: todosProductos.map(p => ({
           productDto: p.id,
           quantity: p.cantidad
         })),
-        customer: cliente || null
+        customer: cliente || ''
       };
+    }
 
-      setLoading(true);
-      try {
-        const response = await fetch('http://localhost:5228/api/comboOut', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(comboPayload)
-        });
+    setLoading(true);
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      });
 
-        if (response.ok) {
-          const productosDescontados = productosSeleccionados.map(p => ({
-            producto: productos.find(prod => prod.id === p.id),
-            cantidad: p.cantidad
+      if (response.ok) {
+        // ✅ Llamar a onRegistrarSalida con los argumentos correctos
+        if (tipoSeleccionado === 'producto') {
+          // Construir los items con la estructura que espera registrarSalidaMultiple
+          const itemsParaPadre = itemsProductos.map(item => ({
+            producto: { id: item.id, nombre: item.nombre, unidad: item.unidad },
+            cantidad: item.cantidad
           }));
-          onRegistrarSalida(
-            productosDescontados,
-            'producto',
-            null,
-            { motivo: motivo, cliente: cliente || '' }
-          );
-          onCerrar();
-          window.location.reload();
+          onRegistrarSalida(itemsParaPadre, 'producto', null, { motivo, cliente });
         } else {
-          const errorText = await response.text();
-          setError(errorText || 'Error al registrar la salida del combo');
+          // Para combo, necesitas construir la estructura adecuada
+          // registrarSalidaMultiple espera items, tipoSalida, comboInfo, datosSalida
+          // En el caso de combo, items sería un array vacío (ya que se maneja internamente)
+          // pero la función padre espera recibir comboInfo y los detalles.
+          // Como tu App.jsx ya tiene lógica para procesar combo en registrarSalidaMultiple,
+          // debemos pasar los datos correctos.
+          // La función padre espera que si tipoSalida === 'combo', el tercer argumento sea comboInfo.
+          // Construimos comboInfo a partir de comboSeleccionado y los productos seleccionados.
+          const comboInfo = {
+            id: comboSeleccionado.id,
+            nombre: comboSeleccionado.nombre,
+            productos: [
+              ...productosComboEditables.filter(p => p.incluido && p.cantidad > 0).map(p => ({
+                nombre: p.nombre,
+                cantidad: p.cantidad,
+                unidad: p.unidad
+              })),
+              ...productosExtra.map(p => ({
+                nombre: p.nombre,
+                cantidad: p.cantidad,
+                unidad: p.unidad
+              }))
+            ],
+            cantidadSalida: 1 // Puedes agregar un input para la cantidad de combos si lo deseas
+          };
+          onRegistrarSalida([], 'combo', comboInfo, { motivo, cliente });
         }
-      } catch (err) {
-        console.error(err);
-        setError('Error de conexión con el servidor');
-      } finally {
-        setLoading(false);
+        // Cerrar el modal (onCerrar navega al dashboard)
+        onCerrar();
+        // No es necesario recargar la página porque la función padre actualiza el estado de productos.
+      } else {
+        const errorData = await response.json();
+        setError(errorData.title || errorData.message || 'Error al registrar la salida');
       }
+    } catch (err) {
+      console.error(err);
+      setError('Error de conexión con el servidor');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
       <div className="absolute inset-0 bg-black bg-opacity-50" onClick={onCerrar}></div>
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 p-6 max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl mx-4 p-6 max-h-[90vh] overflow-y-auto">
         <h2 className="text-2xl font-bold text-green-600 mb-4">Registrar Salida de Inventario</h2>
-        
+
         {error && (
           <div className="bg-red-600 text-white text-center p-3 text-sm rounded-lg mb-4 whitespace-pre-line">
             {error}
@@ -210,9 +336,9 @@ const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar, usua
           <button
             onClick={() => {
               setTipoSeleccionado('producto');
-              setProductoSeleccionado(null);
               setComboSeleccionado(null);
               setProductosComboEditables([]);
+              setProductosExtra([]);
               setError('');
             }}
             className={`flex-1 py-3 px-4 rounded-lg font-bold transition-all duration-300 ${
@@ -221,14 +347,12 @@ const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar, usua
                 : 'border-2 border-green-300 bg-green-50 text-green-700 hover:bg-green-100'
             }`}
           >
-            Salida de Producto
+            Salida de Productos
           </button>
           <button
             onClick={() => {
               setTipoSeleccionado('combo');
-              setProductoSeleccionado(null);
-              setComboSeleccionado(null);
-              setProductosComboEditables([]);
+              setItemsProductos([]);
               setError('');
             }}
             className={`flex-1 py-3 px-4 rounded-lg font-bold transition-all duration-300 ${
@@ -241,78 +365,151 @@ const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar, usua
           </button>
         </div>
 
+        {/* Campo de fecha - ahora tipo datetime-local */}
+        <div className="mb-4">
+          <label className="block text-gray-700 font-bold text-sm mb-2">
+            Fecha de Salida <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="date"
+            value={salidaDate}
+            onChange={(e) => setSalidaDate(e.target.value)}
+            className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-400"
+          />
+        </div>
+
         {tipoSeleccionado === 'producto' ? (
-          // ---------- SECCIÓN PRODUCTO (sin cambios) ----------
-          <div>
-            <label className="block text-gray-700 font-bold text-sm mb-2">
-              Buscar Producto
-            </label>
-            <input
-              type="text"
-              placeholder="Escriba para buscar productos..."
-              value={terminoBusqueda}
-              onChange={(e) => setTerminoBusqueda(e.target.value)}
-              className="w-full p-3 border-2 border-gray-200 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-400"
-              autoFocus
-              disabled={loading}
-            />
-            {terminoBusqueda && productosFiltrados.length > 0 && (
-              <div className="max-h-48 overflow-y-auto border-2 border-gray-200 rounded-lg mb-4">
-                {productosFiltrados.map(producto => (
-                  <div
-                    key={producto.id}
-                    onClick={() => {
-                      setProductoSeleccionado(producto);
-                      setTerminoBusqueda('');
-                    }}
-                    className="p-3 hover:bg-green-50 cursor-pointer border-b last:border-b-0 flex justify-between items-center"
-                  >
-                    <div>
-                      <span className="font-medium">{producto.nombre}</span>
-                      <span className="text-xs text-gray-500 ml-2">Stock: {producto.cantidad} {producto.unidad}</span>
-                    </div>
-                    <button className="text-green-600 text-sm font-bold">Seleccionar</button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {productoSeleccionado && (
-              <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-4">
-                <p className="font-bold text-green-700 mb-2">Producto Seleccionado:</p>
-                <p className="text-sm">{productoSeleccionado.nombre}</p>
-                <p className="text-sm text-gray-600">
-                  Stock disponible: {productoSeleccionado.cantidad} {productoSeleccionado.unidad}
-                </p>
-              </div>
-            )}
-            {productoSeleccionado && (
-              <div className="mb-4">
-                <label className="block text-gray-700 font-bold text-sm mb-2">
-                  Cantidad a retirar
-                </label>
-                <input
-                  type="number"
-                  value={cantidad}
-                  onChange={(e) => setCantidad(parseInt(e.target.value) || 0)}
-                  onFocus={(e) => e.target.select()}
-                  className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-400"
-                  placeholder="0"
-                  min="0"
-                  max={productoSeleccionado?.cantidad || 0}
+          <>
+            {/* Buscador y selección de producto */}
+            <div className="mb-4">
+              <label className="block text-gray-700 font-bold text-sm mb-2">Buscar Producto</label>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    placeholder="Escriba para buscar productos..."
+                    value={terminoBusquedaProducto}
+                    onChange={(e) => setTerminoBusquedaProducto(e.target.value)}
+                    className="w-full p-3 pl-10 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-400"
+                  />
+                  <svg className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <button
+                  onClick={agregarProducto}
+                  className="px-6 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-all duration-300"
                   disabled={loading}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Máximo disponible: {productoSeleccionado.cantidad} {productoSeleccionado.unidad}
-                </p>
+                >
+                  Agregar
+                </button>
+              </div>
+              {terminoBusquedaProducto && productosFiltrados.length > 0 && (
+                <div className="max-h-48 overflow-y-auto border-2 border-gray-200 rounded-lg mt-2">
+                  {productosFiltrados.map(prod => (
+                    <div
+                      key={prod.id}
+                      onClick={() => {
+                        setProductoSeleccionado(prod);
+                        setTerminoBusquedaProducto('');
+                      }}
+                      className="p-3 hover:bg-green-50 cursor-pointer border-b last:border-b-0 flex justify-between items-center"
+                    >
+                      <div>
+                        <span className="font-medium">{prod.nombre}</span>
+                        <span className="text-xs text-gray-500 ml-2">Stock: {prod.cantidad} {prod.unidad}</span>
+                      </div>
+                      <button className="text-green-600 text-xs font-bold">Seleccionar</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {productoSeleccionado && (
+                <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 bg-green-50 p-3 rounded-lg">
+                  <div className="flex-1">
+                    <span className="font-bold text-green-700">Seleccionado: </span>
+                    <span>{productoSeleccionado.nombre}</span>
+                    <span className="text-sm text-gray-600 ml-2">(Stock: {productoSeleccionado.cantidad} {productoSeleccionado.unidad})</span>
+                  </div>
+                  <div className="w-full sm:w-32">
+                    <input
+                      type="number"
+                      value={cantidadProducto}
+                      onChange={(e) => setCantidadProducto(parseInt(e.target.value) || 0)}
+                      className="w-full p-3 border-2 border-gray-200 rounded-lg"
+                      min="0"
+                      max={productoSeleccionado.cantidad}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Tabla de productos agregados */}
+            {itemsProductos.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-xl font-bold text-gray-700 mb-3">Productos a retirar</h3>
+                <div className="overflow-x-auto">
+                  <div className="max-h-[300px] overflow-y-auto border-2 border-red-100 rounded-lg">
+                    <table className="w-full border-collapse">
+                      <thead className="sticky top-0 bg-red-50 z-10">
+                        <tr>
+                          <th className="border-2 border-red-200 p-2 text-left text-xs font-bold">#</th>
+                          <th className="border-2 border-red-200 p-2 text-left text-xs font-bold">Producto</th>
+                          <th className="border-2 border-red-200 p-2 text-left text-xs font-bold">Unidad</th>
+                          <th className="border-2 border-red-200 p-2 text-left text-xs font-bold">Stock Actual</th>
+                          <th className="border-2 border-red-200 p-2 text-left text-xs font-bold">Cantidad a Salir</th>
+                          <th className="border-2 border-red-200 p-2 text-left text-xs font-bold">Precio (no editable)</th>
+                          <th className="border-2 border-red-200 p-2 text-left text-xs font-bold">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {itemsProductos.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-red-50/50">
+                            <td className="border-2 border-red-200 p-2 text-xs">{idx + 1}</td>
+                            <td className="border-2 border-red-200 p-2 text-xs font-medium">{item.nombre}</td>
+                            <td className="border-2 border-red-200 p-2 text-xs">{item.unidad}</td>
+                            <td className="border-2 border-red-200 p-2 text-xs">{item.stock}</td>
+                            <td className="border-2 border-red-200 p-2 text-xs">
+                              <input
+                                type="number"
+                                value={item.cantidad}
+                                onChange={(e) => actualizarCantidadProducto(idx, parseInt(e.target.value) || 0)}
+                                className="w-20 p-1 border border-red-300 rounded text-xs"
+                                min="0"
+                                max={item.stock}
+                              />
+                            </td>
+                            <td className="border-2 border-red-200 p-2 text-xs">
+                              <input
+                                type="text"
+                                disabled
+                                value=""
+                                className="w-24 p-1 border border-gray-300 rounded bg-gray-100 text-xs"
+                                placeholder="No se envía"
+                              />
+                            </td>
+                            <td className="border-2 border-red-200 p-2">
+                              <button
+                                onClick={() => eliminarProducto(idx)}
+                                className="px-2 py-1 border-2 border-red-500 bg-red-50 text-red-700 font-bold rounded-lg hover:bg-red-100 transition-all duration-300 text-[10px]"
+                              >
+                                Eliminar
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             )}
-          </div>
+          </>
         ) : (
-          // ---------- SECCIÓN COMBO CON EDICIÓN Y AGREGADO DE PRODUCTOS EXTRA ----------
+          // Sección combo (completa)
           <div>
-            <label className="block text-gray-700 font-bold text-sm mb-2">
-              Seleccionar Combo
-            </label>
+            <label className="block text-gray-700 font-bold text-sm mb-2">Seleccionar Combo</label>
             <div className="grid grid-cols-1 gap-3 max-h-60 overflow-y-auto border-2 border-gray-200 rounded-lg p-2 mb-4">
               {combos?.map(combo => {
                 const tieneStock = combo.productos.every(item => {
@@ -322,17 +519,7 @@ const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar, usua
                 return (
                   <div
                     key={combo.id}
-                    onClick={() => {
-                      setComboSeleccionado(combo);
-                      const editables = combo.productos.map(p => ({
-                        id: p.id,
-                        nombre: p.nombre,
-                        cantidad: p.cantidad,
-                        unidad: p.unidad,
-                        incluido: true
-                      }));
-                      setProductosComboEditables(editables);
-                    }}
+                    onClick={() => seleccionarCombo(combo)}
                     className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
                       comboSeleccionado?.id === combo.id
                         ? 'border-green-500 bg-green-50'
@@ -362,11 +549,7 @@ const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar, usua
                           <input
                             type="checkbox"
                             checked={item.incluido}
-                            onChange={() => {
-                              const nuevos = [...productosComboEditables];
-                              nuevos[idx].incluido = !nuevos[idx].incluido;
-                              setProductosComboEditables(nuevos);
-                            }}
+                            onChange={() => toggleIncluirProductoCombo(idx)}
                             className="w-4 h-4 text-blue-600"
                           />
                           <span className="font-medium text-gray-800">{item.nombre}</span>
@@ -378,11 +561,7 @@ const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar, usua
                             <input
                               type="number"
                               value={item.cantidad}
-                              onChange={(e) => {
-                                const nuevos = [...productosComboEditables];
-                                nuevos[idx].cantidad = parseInt(e.target.value) || 0;
-                                setProductosComboEditables(nuevos);
-                              }}
+                              onChange={(e) => actualizarCantidadProductoCombo(idx, parseInt(e.target.value) || 0)}
                               onFocus={(e) => e.target.select()}
                               className="w-24 p-1 border border-gray-300 rounded text-sm"
                               min="0"
@@ -413,17 +592,17 @@ const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar, usua
                     <input
                       type="text"
                       placeholder="Buscar producto..."
-                      value={terminoBusquedaProductoExtra}
-                      onChange={(e) => setTerminoBusquedaProductoExtra(e.target.value)}
+                      value={terminoBusquedaExtra}
+                      onChange={(e) => setTerminoBusquedaExtra(e.target.value)}
                       className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-400"
                       disabled={loading}
                     />
-                    {terminoBusquedaProductoExtra && productosExtraFiltrados.length > 0 && (
+                    {terminoBusquedaExtra && productosExtraFiltrados.length > 0 && (
                       <div className="absolute z-10 w-full mt-1 max-h-40 overflow-y-auto bg-white border-2 border-green-200 rounded-lg shadow-lg">
                         {productosExtraFiltrados.map(prod => (
                           <div
                             key={prod.id}
-                            onClick={() => agregarProductoExtra(prod)}
+                            onClick={() => agregarProductoExtraCombo(prod)}
                             className="p-2 hover:bg-green-50 cursor-pointer border-b last:border-b-0"
                           >
                             <span className="font-medium">{prod.nombre}</span>
@@ -433,6 +612,31 @@ const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar, usua
                       </div>
                     )}
                   </div>
+                </div>
+              </div>
+            )}
+            {productosExtra.length > 0 && (
+              <div className="mb-4">
+                <h4 className="font-bold text-gray-700">Productos extra agregados:</h4>
+                <div className="space-y-2 mt-2">
+                  {productosExtra.map((item, idx) => (
+                    <div key={idx} className="bg-yellow-50 p-2 rounded-lg flex justify-between items-center">
+                      <div>
+                        <span className="font-medium">{item.nombre}</span>
+                        <span className="text-xs ml-2">Cantidad: {item.cantidad} {item.unidad}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          value={item.cantidad}
+                          onChange={(e) => actualizarCantidadExtra(idx, parseInt(e.target.value) || 0)}
+                          className="w-20 p-1 border border-gray-300 rounded text-sm"
+                          min="0"
+                        />
+                        <button onClick={() => eliminarExtra(idx)} className="text-red-600 text-sm font-bold">Eliminar</button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -493,11 +697,12 @@ const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar, usua
           </button>
           <button
             onClick={handleRegistrarSalida}
-            className="px-4 py-3 border-2 border-green-500 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={
-              (tipoSeleccionado === 'producto' && !productoSeleccionado) ||
-              (tipoSeleccionado === 'combo' && (!comboSeleccionado || productosComboEditables.filter(p => p.incluido).length === 0)) ||
-              !motivo || loading
+              loading ||
+              (tipoSeleccionado === 'producto' && itemsProductos.length === 0) ||
+              (tipoSeleccionado === 'combo' && !comboSeleccionado) ||
+              !motivo
             }
           >
             {loading ? 'Registrando...' : 'Registrar Salida'}

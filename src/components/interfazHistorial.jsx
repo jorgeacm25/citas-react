@@ -45,12 +45,10 @@ const InterfazHistorial = () => {
   };
 
   const formatearFecha = (f) => {
-    if (!f) return '—';
-    return new Date(f).toLocaleString('es-CU', {
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit'
-    }).replace(',', '');
-  };
+  if (!f) return '—';
+  // Muestra solo la fecha en formato YYYY-MM-DD (UTC)
+  return new Date(f).toISOString().split('T')[0];
+};
 
   const filtrados = items.filter(item => {
     if (filtro !== 'todos' && item.actionType !== filtro) return false;
@@ -111,7 +109,7 @@ const InterfazHistorial = () => {
                         <span className="font-bold">{item.actionType}</span>
                         <span className="text-xs text-gray-500">{formatearFecha(item.createdAt)}</span>
                       </div>
-                      <p className="text-sm text-gray-600">{item.description}</p>
+                      <p className="text-sm text-gray-600 whitespace-pre-wrap">{item.description}</p>
                       <div className="flex gap-2 mt-1 text-xs">
                         <span className={`px-2 py-0.5 rounded-full ${getEstilo(item.actionType)}`}>{item.actionType}</span>
                         <span>por: {item.userOrAdminUserName}</span>
@@ -136,7 +134,7 @@ const InterfazHistorial = () => {
             <div className="space-y-4 mt-4">
               <div><span className="font-bold">Fecha:</span> {formatearFecha(detalle.createdAt)}</div>
               <div><span className="font-bold">Usuario:</span> {detalle.userOrAdminUserName}</div>
-              <div><span className="font-bold">Descripción:</span> {detalle.description}</div>
+              <div className='whitespace-pre-wrap'><span className="font-bold ">Descripción:</span> {detalle.description}</div>
             </div>
           </div>
         </div>

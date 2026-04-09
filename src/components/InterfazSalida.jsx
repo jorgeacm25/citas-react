@@ -1,8 +1,15 @@
 import { useState } from 'react';
 import ModalModificarComboSalida from './ModalModificarComboSalida';
 
-const InterfazSalida = ({ productos, combos, clientesFrecuentes = [], onRegistrarSalida, onCancelar }) => {
-  const [tipoSalida, setTipoSalida] = useState('producto'); // 'producto' o 'combo'
+const InterfazSalida = ({ 
+  productos, 
+  combos, 
+  clientesFrecuentes = [], 
+  onCancelar, 
+  adminId,      // nuevo: ID del administrador (puede ser null)
+  userId        // nuevo: ID del usuario (puede ser null)
+}) => {
+  const [tipoSalida, setTipoSalida] = useState('producto');
   const [itemsSalida, setItemsSalida] = useState([]);
   const [comboSeleccionado, setComboSeleccionado] = useState(null);
   const [comboEditado, setComboEditado] = useState(null);
@@ -15,13 +22,16 @@ const InterfazSalida = ({ productos, combos, clientesFrecuentes = [], onRegistra
   const [terminoBusqueda, setTerminoBusqueda] = useState('');
   const [error, setError] = useState('');
   const [modalEditarComboAbierto, setModalEditarComboAbierto] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  // Nueva fecha de salida
+  const [salidaDate, setSalidaDate] = useState(new Date().toISOString().slice(0, 16));
 
   const clienteVentaFinal = clienteVenta === '__nuevo__'
     ? clienteVentaNuevo.trim()
     : clienteVenta.trim();
 
   const productosFiltrados = productos.filter(p => 
-    p.nombre.toLowerCase().includes(terminoBusqueda.toLowerCase()) &&
+    p.nombre?.toLowerCase().includes(terminoBusqueda.toLowerCase()) &&
     p.cantidad > 0
   );
 
@@ -88,34 +98,8 @@ const InterfazSalida = ({ productos, combos, clientesFrecuentes = [], onRegistra
     setModalEditarComboAbierto(false);
   };
 
-  const handleRegistrarSalida = () => {
-    if (tipoSalida === 'producto') {
-      if (itemsSalida.length === 0) {
-        setError('Debe agregar al menos un producto a la salida');
-        return;
-      }
-    } else {
-      if (!comboParaUsar) {
-        setError('Debe seleccionar un combo');
-        return;
-      }
-      
-      // Verificar stock para todos los productos del combo
-      const productosSinStock = [];
-      comboParaUsar.productos.forEach(item => {
-        const producto = productos.find(p => p.nombre === item.nombre);
-        const cantidadNecesaria = item.cantidad * (comboParaUsar.cantidadSalida || 1);
-        if (!producto || producto.cantidad < cantidadNecesaria) {
-          productosSinStock.push(`${item.nombre} (requiere ${cantidadNecesaria} ${item.unidad})`)
-        }
-      });
-      
-      if (productosSinStock.length > 0) {
-        setError(`Stock insuficiente para:\n${productosSinStock.join('\n')}`);
-        return;
-      }
-    }
-
+  const handleRegistrarSalida = async () => {
+    // Validaciones comunes
     if (!motivo) {
       setError('Debe seleccionar un motivo para la salida');
       return;
@@ -132,15 +116,93 @@ const InterfazSalida = ({ productos, combos, clientesFrecuentes = [], onRegistra
       return;
     }
 
-    const datosSalida = {
-      motivo: motivoFinal,
-      cliente: motivo === 'venta' ? clienteVentaFinal : '',
-    };
+    // Fecha en formato ISO (con zona horaria local ajustada)
+    const dateTime = new Date(salidaDate).toISOString();
+
+    let body = {};
+    let url = '';
 
     if (tipoSalida === 'producto') {
-      onRegistrarSalida(itemsSalida, 'producto', null, datosSalida);
-    } else {
-      onRegistrarSalida([], 'combo', comboParaUsar, datosSalida);
+      if (itemsSalida.length === 0) {
+        setError('Debe agregar al menos un producto a la salida');
+        return;
+      }
+      url = '/api/productOut';
+      body = {
+        products: itemsSalida.map(item => ({
+          id: item.producto.id,
+          quantity: item.cantidad
+        })),
+        productOutDate: dateTime,
+        outMotive: motivoFinal,
+        adminId: adminId || null,
+        userId: userId || null,
+        customer: motivo === 'venta' ? clienteVentaFinal : ''
+      };
+    } else { // combo
+      if (!comboParaUsar) {
+        setError('Debe seleccionar un combo');
+        return;
+      }
+      // Verificar stock para todos los productos del combo (incluyendo posible cantidad de combos)
+      const productosSinStock = [];
+      comboParaUsar.productos.forEach(item => {
+        const producto = productos.find(p => p.nombre === item.nombre);
+        const cantidadNecesaria = item.cantidad * (comboParaUsar.cantidadSalida || 1);
+        if (!producto || producto.cantidad < cantidadNecesaria) {
+          productosSinStock.push(`${item.nombre} (requiere ${cantidadNecesaria} ${item.unidad})`);
+        }
+      });
+      if (productosSinStock.length > 0) {
+        setError(`Stock insuficiente para:\n${productosSinStock.join('\n')}`);
+        return;
+      }
+
+      url = '/api/comboOut';
+      body = {
+        comboId: comboParaUsar.id,
+        comboOutDate: dateTime,
+        outMotive: motivoFinal,
+        adminId: adminId || null,
+        userId: userId || null,
+        customer: motivo === 'venta' ? clienteVentaFinal : ''
+      };
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Si necesitas token, añade aquí Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.title || errorData.message || 'Error al registrar la salida');
+      }
+
+      // Éxito: cerrar modal o resetear estado
+      alert('Salida registrada correctamente');
+      // Limpiar formulario
+      setItemsSalida([]);
+      setComboSeleccionado(null);
+      setComboEditado(null);
+      setMotivo('');
+      setMotivoOtro('');
+      setClienteVenta('');
+      setClienteVentaNuevo('');
+      setError('');
+      if (onCancelar) onCancelar(); // Cerrar el modal principal
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -187,6 +249,19 @@ const InterfazSalida = ({ productos, combos, clientesFrecuentes = [], onRegistra
         >
           Salida de Combo
         </button>
+      </div>
+
+      {/* Campo de fecha de salida */}
+      <div className="mb-4">
+        <label className="block text-gray-700 font-bold text-sm mb-2">
+          Fecha de Salida <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="datetime-local"
+          value={salidaDate}
+          onChange={(e) => setSalidaDate(e.target.value)}
+          className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400"
+        />
       </div>
 
       {tipoSalida === 'producto' ? (
@@ -509,19 +584,23 @@ const InterfazSalida = ({ productos, combos, clientesFrecuentes = [], onRegistra
         <button
           onClick={onCancelar}
           className="w-full sm:w-auto px-6 py-3 border-2 border-gray-500 bg-gray-50 text-gray-700 font-bold rounded-lg hover:bg-gray-100 transition-all duration-300"
+          disabled={isLoading}
         >
           Cancelar
         </button>
         <button
           onClick={handleRegistrarSalida}
           className="w-full sm:w-auto px-6 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={(tipoSalida === 'producto' && itemsSalida.length === 0) || 
-                   (tipoSalida === 'combo' && !comboParaUsar) || 
-                   !motivo ||
-                   (motivo === 'venta' && !clienteVentaFinal) ||
-                   (motivo === 'otro' && !motivoOtro.trim())}
+          disabled={
+            isLoading ||
+            (tipoSalida === 'producto' && itemsSalida.length === 0) ||
+            (tipoSalida === 'combo' && !comboParaUsar) ||
+            !motivo ||
+            (motivo === 'venta' && !clienteVentaFinal) ||
+            (motivo === 'otro' && !motivoOtro.trim())
+          }
         >
-          Registrar Salida
+          {isLoading ? 'Registrando...' : 'Registrar Salida'}
         </button>
       </div>
 
