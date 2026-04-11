@@ -4,6 +4,7 @@ const ModalAgregarCantidad = ({ producto, onAgregar, onCerrar, usuario }) => {
   const [cantidad, setCantidad] = useState('');
   const [provider , setProvider] = useState('');
   const [nuevaFechaVencimiento, setNuevaFechaVencimiento] = useState(producto.fechaVencimiento || '');
+  const [nuevaFechaEntrada , setNuevaFechaEntrada] = useState();
   const [error, setError] = useState('');
   const [confirmando, setConfirmando] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -39,6 +40,10 @@ const ModalAgregarCantidad = ({ producto, onAgregar, onCerrar, usuario }) => {
     if (nuevaFechaVencimiento) {
       endDate = new Date(nuevaFechaVencimiento).toISOString();
     }
+    let dateIn = null;
+    if(nuevaFechaEntrada){
+      dateIn = new Date(nuevaFechaEntrada).toISOString();
+    }
 
     const payload = {
       id: producto.id,
@@ -46,7 +51,8 @@ const ModalAgregarCantidad = ({ producto, onAgregar, onCerrar, usuario }) => {
       endDate: endDate,
       adminId: null,
       userId: userId,
-      provider: provider
+      provider: provider,
+      dateIn: dateIn
     };
 
     setLoading(true);
@@ -130,9 +136,18 @@ const ModalAgregarCantidad = ({ producto, onAgregar, onCerrar, usuario }) => {
                 className="w-full p-3 border-2 border-green-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-600 text-lg"
                 disabled={loading}
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Dejar vacío para mantener la fecha actual o eliminarla (según el backend).
-              </p>
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-800 font-extrabold text-base mb-2">
+                Fecha de Entrada
+              </label>
+              <input
+                type="date"
+                value={nuevaFechaEntrada}
+                onChange={(e) => setNuevaFechaEntrada(e.target.value)}
+                className="w-full p-3 border-2 border-green-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-600 text-lg"
+                disabled={loading}
+              />
             </div>
             <div className="mb-4">
               <label className="block text-gray-800 font-extrabold text-base mb-2">
@@ -183,6 +198,12 @@ const ModalAgregarCantidad = ({ producto, onAgregar, onCerrar, usuario }) => {
               </p>
               <p className="text-base sm:text-lg">
                 <span className="font-extrabold">Nueva fecha de vencimiento:</span> {nuevaFechaVencimiento || 'No especificada'}
+              </p>
+              <p className="text-base sm:text-lg">
+                <span className="font-extrabold">Fecha de Entrada:</span> {nuevaFechaEntrada || 'No especificada'}
+              </p>
+              <p className="text-base sm:text-lg">
+                <span className="font-extrabold">Proveedor:</span> {provider}
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">

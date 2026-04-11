@@ -112,7 +112,7 @@ function App() {
           operador: prod.nameUserorAdmin,
           categoria: prod.category || obtenerCategoriaAutomatica(prod.name),
           proveedor: prod.provider || 'Sin proveedor',
-          fechaEntrada: new Date().toISOString().split('T')[0],
+          fechaEntrada: prod.updateAt ? prod.updateAt.split('T')[0] : null,
         }));
         setProductos(productosMapeados);
       } catch (error) {
