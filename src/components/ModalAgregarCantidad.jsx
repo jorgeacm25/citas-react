@@ -2,16 +2,16 @@ import { useState } from 'react';
 
 const ModalAgregarCantidad = ({ producto, onAgregar, onCerrar, usuario }) => {
   const [cantidad, setCantidad] = useState('');
-  const [provider , setProvider] = useState('');
+  const [provider, setProvider] = useState('');
   const [nuevaFechaVencimiento, setNuevaFechaVencimiento] = useState(producto.fechaVencimiento || '');
-  const [nuevaFechaEntrada , setNuevaFechaEntrada] = useState();
+  const [nuevaFechaEntrada, setNuevaFechaEntrada] = useState('');
   const [error, setError] = useState('');
   const [confirmando, setConfirmando] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const cantidadNum = parseInt(cantidad);
+    const cantidadNum = parseInt(cantidad, 10);
     if (!cantidad || isNaN(cantidadNum) || cantidadNum <= 0) {
       setError('Ingrese una cantidad válida mayor a 0');
       return;
@@ -20,69 +20,73 @@ const ModalAgregarCantidad = ({ producto, onAgregar, onCerrar, usuario }) => {
     setConfirmando(true);
   };
 
-  const confirmarAccion = async () => {
-    const cantidadAgregar = parseInt(cantidad);
-    const nuevaCantidad = producto.cantidad + cantidadAgregar;
+ const confirmarAccion = async () => {
+  const cantidadAgregar = parseFloat(cantidad);
+  const nuevaCantidadTotal = Math.round(producto.cantidad + cantidadAgregar); // Redondear a entero
 
-    const token = localStorage.getItem('token');
-    if (!token) {
-      alert('No hay sesión activa. Inicie sesión nuevamente.');
-      return;
-    }
-    const userId = usuario?.id;
-    if (!userId) {
-      alert('No se pudo identificar al usuario.');
-      return;
-    }
+  const token = localStorage.getItem('token');
+  if (!token) {
+    alert('No hay sesión activa. Inicie sesión nuevamente.');
+    return;
+  }
+  const userId = usuario?.id;
+  if (!userId) {
+    alert('No se pudo identificar al usuario.');
+    return;
+  }
 
-    // Convertir fecha de vencimiento a ISO (si existe)
-    let endDate = null;
-    if (nuevaFechaVencimiento) {
-      endDate = new Date(nuevaFechaVencimiento).toISOString();
-    }
-    let dateIn = null;
-    if(nuevaFechaEntrada){
-      dateIn = new Date(nuevaFechaEntrada).toISOString();
-    }
+  let endDate = null;
+  if (nuevaFechaVencimiento) {
+    endDate = new Date(nuevaFechaVencimiento).toISOString();
+  }
+  
+  let dateIn = null;
+  if (nuevaFechaEntrada) {
+    dateIn = new Date(nuevaFechaEntrada).toISOString();
+  } else {
+    dateIn = new Date().toISOString();
+  }
 
-    const payload = {
-      id: producto.id,
-      quantity: nuevaCantidad,
-      endDate: endDate,
-      adminId: null,
-      userId: userId,
-      provider: provider,
-      dateIn: dateIn
-    };
-
-    setLoading(true);
-    try {
-      const response = await fetch('http://localhost:5228/api/product', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (response.ok) {
-        // Actualizar estado local en App (cantidad y fecha de vencimiento)
-        onAgregar(producto.id, cantidadAgregar, nuevaFechaVencimiento);
-        onCerrar();
-        window.location.reload();
-      } else {
-        const errorText = await response.text();
-        alert(`Error al actualizar stock: ${errorText}`);
-      }
-    } catch (error) {
-      console.error(error);
-      alert('Error de conexión con el servidor');
-    } finally {
-      setLoading(false);
-      setConfirmando(false);
-    }
+  // 🔥 Enviar directamente, SIN "command"
+  const payload = {
+    id: producto.id,
+    quantity: nuevaCantidadTotal,  // ← Asegurar que sea entero
+    endDate: endDate,
+    adminId: null,
+    userId: userId,
+    provider: provider,
+    dateIn: dateIn
   };
+
+  console.log('Enviando payload:', JSON.stringify(payload, null, 2));
+
+  setLoading(true);
+  try {
+    const response = await fetch('http://localhost:5228/api/product', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      onAgregar(producto.id, cantidadAgregar, nuevaFechaVencimiento);
+      onCerrar();
+    } else {
+      const errorText = await response.text();
+      console.error('Error response:', errorText);
+      alert(`Error al actualizar stock: ${errorText}`);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error de conexión con el servidor');
+  } finally {
+    setLoading(false);
+    setConfirmando(false);
+  }
+};
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
@@ -118,8 +122,6 @@ const ModalAgregarCantidad = ({ producto, onAgregar, onCerrar, usuario }) => {
                 onFocus={(e) => e.target.select()}
                 className="w-full p-3 border-2 border-green-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-600 text-lg"
                 placeholder="0"
-                min="0"
-                step="1"
                 autoFocus
                 disabled={loading}
               />
@@ -137,6 +139,7 @@ const ModalAgregarCantidad = ({ producto, onAgregar, onCerrar, usuario }) => {
                 disabled={loading}
               />
             </div>
+            
             <div className="mb-4">
               <label className="block text-gray-800 font-extrabold text-base mb-2">
                 Fecha de Entrada
@@ -149,6 +152,7 @@ const ModalAgregarCantidad = ({ producto, onAgregar, onCerrar, usuario }) => {
                 disabled={loading}
               />
             </div>
+            
             <div className="mb-4">
               <label className="block text-gray-800 font-extrabold text-base mb-2">
                 Nombre del Proveedor
@@ -160,8 +164,10 @@ const ModalAgregarCantidad = ({ producto, onAgregar, onCerrar, usuario }) => {
                 onFocus={(e) => e.target.select()}
                 className="w-full p-3 border-2 border-green-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-600 text-lg"
                 placeholder="Merlin"
+                disabled={loading}
               />
             </div>
+            
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <button
                 type="button"
