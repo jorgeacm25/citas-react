@@ -6,7 +6,7 @@ const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar, usua
   const [itemsProductos, setItemsProductos] = useState([]);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
   const [cantidadProducto, setCantidadProducto] = useState(1);
-  const [cantidadProductoTexto, setCantidadProductoTexto] = useState('1'); // texto temporal
+  const [cantidadProductoTexto, setCantidadProductoTexto] = useState('1');
   const [terminoBusquedaProducto, setTerminoBusquedaProducto] = useState('');
   const [productosFiltrados, setProductosFiltrados] = useState([]);
 
@@ -16,6 +16,8 @@ const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar, usua
   const [productosExtra, setProductosExtra] = useState([]);
   const [terminoBusquedaExtra, setTerminoBusquedaExtra] = useState('');
   const [productosExtraFiltrados, setProductosExtraFiltrados] = useState([]);
+  // Nuevo estado para cantidad de combos (opcional)
+  const [comboQuantity, setComboQuantity] = useState('');
 
   // Estados comunes
   const [motivo, setMotivo] = useState('');
@@ -128,6 +130,7 @@ const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar, usua
     }));
     setProductosComboEditables(editables);
     setProductosExtra([]);
+    // No reiniciamos comboQuantity para mantener el valor si el usuario ya lo ingresó
     setError('');
   };
 
@@ -248,6 +251,13 @@ const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar, usua
           return;
         }
       }
+
+      // Procesar cantidad de combos (opcional)
+      let quantityToQuit = null;
+      if (comboQuantity !== '' && !isNaN(parseFloat(comboQuantity))) {
+        quantityToQuit = parseFloat(comboQuantity);
+      }
+
       url = 'http://localhost:5228/api/comboOut';
       body = {
         comboId: comboSeleccionado.id,
@@ -259,8 +269,10 @@ const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar, usua
           productDto: p.id,
           quantity: p.cantidad
         })),
-        customer: cliente || ''
+        customer: cliente || '',
+        quantityToQuit: quantityToQuit
       };
+      console.log(body.quantityToQuit)
     }
 
     setLoading(true);
@@ -302,6 +314,7 @@ const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar, usua
           onRegistrarSalida([], 'combo', comboInfo, { motivo, cliente });
         }
         onCerrar();
+        window.location.reload()
       } else {
         const errorData = await response.json();
         setError(errorData.title || errorData.message || 'Error al registrar la salida');
@@ -333,6 +346,7 @@ const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar, usua
               setComboSeleccionado(null);
               setProductosComboEditables([]);
               setProductosExtra([]);
+              setComboQuantity('');
               setError('');
             }}
             className={`flex-1 py-3 px-4 rounded-lg font-bold transition-all duration-300 ${
@@ -347,6 +361,7 @@ const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar, usua
             onClick={() => {
               setTipoSeleccionado('combo');
               setItemsProductos([]);
+              setComboQuantity('');
               setError('');
             }}
             className={`flex-1 py-3 px-4 rounded-lg font-bold transition-all duration-300 ${
@@ -559,6 +574,35 @@ const FormularioSalida = ({ productos, combos, onRegistrarSalida, onCerrar, usua
                   </div>
                 );
               })}
+            </div>
+
+            {/* NUEVO CAMPO: Cantidad de Combos (opcional) - AHORA SIEMPRE VISIBLE */}
+            <div className="mb-4">
+              <label className="block text-gray-700 font-bold text-sm mb-2">
+                Cantidad de Combos <span className="text-gray-400 text-xs">(opcional)</span>
+              </label>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={comboQuantity}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (raw === '' || /^\d*[.,]?\d*$/.test(raw)) {
+                    setComboQuantity(raw);
+                  }
+                }}
+                onBlur={() => {
+                  let num = parseFloat(comboQuantity.replace(',', '.'));
+                  if (isNaN(num)) {
+                    setComboQuantity('');
+                  } else {
+                    setComboQuantity(num.toString());
+                  }
+                }}
+                className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-400"
+                placeholder="Ej: 1, 2.5, etc."
+                disabled={loading}
+              />
             </div>
 
             {comboSeleccionado && productosComboEditables.length > 0 && (

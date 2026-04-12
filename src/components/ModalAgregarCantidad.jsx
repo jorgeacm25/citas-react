@@ -74,6 +74,7 @@ const ModalAgregarCantidad = ({ producto, onAgregar, onCerrar, usuario }) => {
     if (response.ok) {
       onAgregar(producto.id, cantidadAgregar, nuevaFechaVencimiento);
       onCerrar();
+      window.location.reload();
     } else {
       const errorText = await response.text();
       console.error('Error response:', errorText);
